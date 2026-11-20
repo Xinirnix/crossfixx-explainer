@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Closed-loop tuning · Xeryon explainers</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M3 24 C10 24 10 6 16 6 S22 14 29 14%27 fill=%27none%27 stroke=%27%235fd3ff%27 stroke-width=%273%27/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="hub-link" href="../">← All</a>
+      <h1>How the controller lands a piezo stage</h1>
+      <span class="badge">closed loop · tuning</span>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div class="lede">
+          <p>The motor on its own only knows <em>phase</em> and <em>amplitude</em>: phase sets the direction, amplitude sets the speed. The controller closes the loop. Every 33 µs it reads the encoder, compares the count with where the stage should be, and turns that error into a new amplitude and phase. Far from the target it uses one set of gains, close to it another.</p>
+          <p>Once the stage is within <b>PTOL</b> encoder counts of the target, the controller switches the drive off and raises <i>position reached</i>. The preloaded tip then clamps the strip, so the stage holds its position with no power. If it can't get inside PTOL within <b>TOUT</b> ms, the looser <b>PTO2</b> becomes the tolerance so it doesn't keep vibrating around the target.</p>
+        </div>
+        <svg class="loop" viewBox="0 0 560 170" role="img" aria-label="Control loop: target and speed profile give a setpoint; error times PROP gives drive; drive sets amplitude and phase; the piezo tip moves the stage; the encoder reports counts back.">
+          <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+          <g class="blk"><rect x="4" y="40" width="84" height="44" rx="7"/><text x="46" y="58">target</text><text x="46" y="74" class="s">SSPD profile</text></g>
+          <g class="sum"><circle cx="118" cy="62" r="11"/><text x="118" y="67">−</text></g>
+          <g class="blk hot"><rect x="148" y="40" width="96" height="44" rx="7"/><text x="196" y="58">gain by zone</text><text x="196" y="74" class="s">PROP / PRO2</text></g>
+          <g class="blk hot"><rect x="272" y="40" width="104" height="44" rx="7"/><text x="324" y="58">amplitude, phase</text><text x="324" y="74" class="s">FREQ / FRQ2</text></g>
+          <g class="blk"><rect x="404" y="40" width="70" height="44" rx="7"/><text x="439" y="58">tip</text><text x="439" y="74" class="s">ellipse</text></g>
+          <g class="blk"><rect x="496" y="40" width="60" height="44" rx="7"/><text x="526" y="66">stage</text></g>
+          <g class="blk cool"><rect x="272" y="116" width="104" height="40" rx="7"/><text x="324" y="133">encoder</text><text x="324" y="148" class="s">counts</text></g>
+          <g class="wire">
+            <path d="M88 62 H105" marker-end="url(#ar)"/><path d="M129 62 H146" marker-end="url(#ar)"/>
+            <path d="M244 62 H270" marker-end="url(#ar)"/><path d="M376 62 H402" marker-end="url(#ar)"/>
+            <path d="M474 62 H494" marker-end="url(#ar)"/>
+            <path d="M526 84 V136 H378" marker-end="url(#ar)"/><path d="M272 136 H118 V75" marker-end="url(#ar)"/>
+          </g>
+          <text x="200" y="30" class="lbl">drive = PROP · error</text>
+          <text x="200" y="128" class="lbl">error = setpoint − counts</text>
+        </svg>
+      </section>
+
+      <section class="lab">
+        <div class="charts">
+          <div class="card">
+            <div class="card-h"><h2>The whole move</h2><span class="legend"><i class="k-sp"></i>setpoint <i class="k-x"></i>stage</span></div>
+            <canvas id="c-move"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-h"><h2>Landing, in encoder counts</h2><span class="legend"><i class="k-ptol"></i>±PTOL <i class="k-pto2"></i>±PTO2 <i class="k-off"></i>drive off</span></div>
+            <canvas id="c-land"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-h"><h2>What the controller sends</h2><span class="legend"><i class="k-amp"></i>tip amplitude <i class="k-fwd"></i>phase +90° <i class="k-rev"></i>phase −90° <i class="k-f"></i>frequency</span></div>
+            <canvas id="c-drive"></canvas>
+          </div>
+          <div class="card result">
+            <canvas id="c-tip" width="150" height="150"></canvas>
+            <div>
+              <dl id="readout"></dl>
+              <ul id="diagnosis"></ul>
+            </div>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <div class="presets" id="presets"></div>
+          <div id="controls"></div>
+          <p class="fine">Names are the controller's own (Controller &amp; Connection Manual, §5.2). Gains are per encoder count, so changing the encoder changes what PROP means.</p>
+        </aside>
+      </section>
+
+      <section class="faults">
+        <h2>Symptoms and what to change</h2>
+        <p class="sub">Each row runs the symptom, then the change the manual points to. Quotes are from Xeryon's Controller &amp; Connection Manual (rev 3.26, §13 and §14).</p>
+        <div id="fault-table"></div>
+      </section>
+
+      <section class="notes">
+        <div>
+          <h2>From Xeryon's manual</h2>
+          <ul>
+            <li>Two zones, symmetric around the target, in encoder units. Error &lt; ZON1 uses FREQ and PROP. Error &gt; ZON2 uses FRQ2 and PRO2. In between the values are interpolated.</li>
+            <li>Within ±PTOL "the control is switched off and the 'position reached' flag is raised". PTO2 takes over if PTOL isn't reached within TOUT (default 50 ms).</li>
+            <li>DUCO = 1 uses amplitude in the loop; DUCO = 0 uses a fixed 50 % amplitude.</li>
+            <li>The following error is limited by ELIM; beyond it the controller goes to safe mode with the motor off.</li>
+            <li>Frequency "a few kHz above the resonant frequency often leads to a more relaxed control with better 'landing'". Too high gives "very limited force", too low "unstable behaviour".</li>
+            <li>Higher proportional factors react more strongly but can cause "instability or noisy operation". Lower ones give "a more sluggish motion response".</li>
+            <li>Payload: "For every 100g of mass you add, increase the MASS parameter with 100", then "halve the values of PROP and PRO2".</li>
+            <li>Encoders: 1250, 312, 78, 5 and 1 nm per count.</li>
+          </ul>
+        </div>
+        <div>
+          <h2>Our model (editable in <code>src/closed-loop/sim.js</code>)</h2>
+          <ul>
+            <li>Drive = (PROP·error − MASS·KD·speed) / 30000, clamped to ±1. Xeryon doesn't publish the internal law or the gain scaling, so the scale is chosen so the defaults land cleanly.</li>
+            <li>Drive becomes amplitude, its sign becomes the ±90° phase. The tip then moves 2·A·sin φ per cycle, the same tip equation as the <a href="../crossfixx/">CrossFixx page</a>.</li>
+            <li>The tip pushes with at most 4 N × amplitude × |sin φ|. Mass and load decide how fast the stage follows. With the drive off, a 4 N preload holds the stage (self-locking).</li>
+            <li>An example resonance of 166 kHz (as on the CrossFixx page; real stages range widely), Q = 30, softening by 5 kHz at full amplitude. The manual's defaults search 165–175 kHz and drive at FREQ = 170 kHz, a few kHz above it. Mode ring-up time Q/(πf) ≈ 57 µs is the main loop delay.</li>
+            <li>MASS caps the planned acceleration at 2 N / (carriage + MASS g) and adds speed damping. This is our reading of MASS, not Xeryon's code.</li>
+            <li>Not modelled: DLAY, PHAC, offsets, scanning, index search, thermal drift.</li>
+          </ul>
+          <p class="fine"><a href="https://xeryon.com/download-files/Controller%20&amp;%20Connection%20Manual.pdf">Xeryon Controller &amp; Connection Manual (PDF)</a></p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/closed-loop/main.js"></script>
+  </body>
+</html>
