@@ -1,5 +1,7 @@
 # CrossFixx piezo motor explainer
 
+Live site: https://xinirnix.github.io/crossfixx-explainer/
+
 Interactive 3D explainer of a two-mode standing-wave ultrasonic piezo motor (Xeryon CrossFixx style).
 
 ```
@@ -7,6 +9,8 @@ npm install
 npm run dev      # http://localhost:5173
 npm run build    # static site in dist/
 ```
+
+Every push to `main` builds and deploys the site to GitHub Pages (`.github/workflows/pages.yml`).
 
 ## Files
 
