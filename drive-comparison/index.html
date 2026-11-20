@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Friction Drive vs Screws · Xeryon explainers</title>
+    <meta name="description" content="A direct piezo friction drive side by side with a lead screw, a worm gear and a magnetic linear motor: backlash on reversal, heat while holding, stray field, and self-locking at zero power." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cellipse cx=%2716%27 cy=%2716%27 rx=%2712%27 ry=%277%27 fill=%27none%27 stroke=%27%23ffb35c%27 stroke-width=%273%27/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <canvas id="gl"></canvas>
+
+    <header class="brand">
+      <a class="hub-link" href="../" title="All explainers">← All</a>
+      <h1>Friction drive vs screw, worm gear and magnetic drive</h1>
+    </header>
+
+    <section class="intro">
+      <p>
+        Four drives move the same payload with the same command, the same load and the same power switch.
+        Pick a scenario, then watch what each mechanism does when it <b>reverses</b>, when it <b>holds</b>
+        a load, and when the <b>power goes off</b>.
+      </p>
+    </section>
+
+    <nav class="bar">
+      <div class="seg" id="scenario">
+        <button data-scn="reverse">1 · Reverse direction</button>
+        <button data-scn="hold">2 · Hold a load</button>
+        <button data-scn="off">3 · Cut the power</button>
+      </div>
+      <p id="scn-text" class="scn-text"></p>
+      <div class="ctls">
+        <button id="power" class="btn power">Power: on</button>
+        <label class="ctl"><span>Load <em id="load-val"></em></span><input id="load" type="range" min="0" max="8" step="0.1" /></label>
+        <label class="ctl"><span>Field probe above payload <em id="probe-val"></em></span><input id="probe" type="range" min="0" max="60" step="1" /></label>
+        <label class="ctl"><span>Screw backlash <em id="bl-val"></em></span><input id="bl" type="range" min="0" max="100" step="1" /></label>
+        <label class="ctl"><span>Worm backlash <em id="wbl-val"></em></span><input id="wbl" type="range" min="0" max="30" step="0.5" /></label>
+        <div class="seg small" id="nut"><button data-v="plain">Lead screw</button><button data-v="ball">Ball screw</button></div>
+        <div class="seg small" id="starts"><button data-v="1">Worm 1-start</button><button data-v="2">2-start</button></div>
+        <button id="pause" class="btn">Pause</button>
+      </div>
+    </nav>
+
+    <main class="grid">
+      <article class="panel" data-drive="piezo">
+        <h2><span class="dot hot"></span>Piezo friction drive <small>Xeryon ultrasonic, direct</small></h2>
+        <div class="view"></div>
+        <canvas class="chart"></canvas>
+        <dl class="ro"></dl>
+      </article>
+      <article class="panel" data-drive="screw">
+        <h2><span class="dot"></span>Stepper on a lead screw <small>nut rides a thread</small></h2>
+        <div class="view"><span class="tag">gap ×600</span></div>
+        <canvas class="chart"></canvas>
+        <dl class="ro"></dl>
+      </article>
+      <article class="panel" data-drive="worm">
+        <h2><span class="dot"></span>DC motor on a worm gear <small>load on an output arm</small></h2>
+        <div class="view"><span class="tag">gap magnified</span></div>
+        <canvas class="chart"></canvas>
+        <dl class="ro"></dl>
+      </article>
+      <article class="panel" data-drive="magnet">
+        <h2><span class="dot"></span>Magnetic linear motor <small>coil forcer over a magnet track</small></h2>
+        <div class="view"><span class="tag">field map behind the track</span></div>
+        <canvas class="chart"></canvas>
+        <dl class="ro"></dl>
+      </article>
+    </main>
+
+    <section class="notes">
+      <h2>What the equations say</h2>
+      <div class="cols">
+        <div>
+          <h3>Backlash on reversal</h3>
+          <p>A nut needs clearance on its thread, and a worm needs clearance between its teeth. When the screw reverses, it turns through that clearance <i>b</i> before the other flank touches, so the payload stops while the motor keeps going: the chart shows a step of size <i>b</i> at every reversal. A load that always pulls one way keeps the payload on one flank and hides the gap, which is what anti-backlash nuts and preloaded ball nuts do on purpose. The piezo tip pushes the payload directly by friction, "with no screw and no gearing" (Xeryon), so there is no flank to cross; what remains is the encoder step, 78 nm on the XLA.</p>
+        </div>
+        <div>
+          <h3>Heat while holding</h3>
+          <p>An electromagnet only pushes while current flows: <code>F = k<sub>f</sub>·I</code>, and that current heats the winding as <code>P = I²R = R·(F/k<sub>f</sub>)²</code>. A linear motor holding a load therefore "draws current the whole time it holds position" (Xeryon). A stepper keeps its phases energised to hold its step, <code>P = 2·I²R</code> whatever the load. A self-locking worm needs no motor torque to hold, so its motor can rest. The piezo motor "draws no current to stay put" (Xeryon): its preload spring does the holding.</p>
+        </div>
+        <div>
+          <h3>Stray magnetic field</h3>
+          <p>A magnet track with pole pitch τ has a field that falls off as <code>B(z) ≈ B₀·e^(−πz/τ)</code>. Close to the track it is hundreds of millitesla; the payload rides right above it, so "it carries a magnetic field into your instrument" (Xeryon). A motor housing at the end of a screw behaves roughly like a dipole, <code>B ∝ 1/r³</code>, and is further away. The piezo drive is ceramic, with no coils and no magnets, so the drive itself adds no field. Earth's field, about 0.05 mT, is shown for scale.</p>
+        </div>
+        <div>
+          <h3>Self-locking at zero power</h3>
+          <p>A screw or worm with lead angle <code>λ = atan(lead / πd)</code> cannot be turned backwards by its load when <code>μ &gt; tan λ</code>. A plain lead screw usually meets this; a ball screw (μ ≈ 0.005) does not and "needs a brake" (Xeryon), and a worm with more starts has a steeper lead and stops locking. A linear motor has nothing to hold it: with the power off, a vertical load falls. The piezo motor "self-locks at rest with a holding force equal to its driving force" (Xeryon), here <code>F<sub>hold</sub> = μ·F<sub>preload</sub></code>. Push past it and the contact slips; Xeryon notes this is "passive holding within the specified holding force, not a safety brake".</p>
+        </div>
+      </div>
+      <p class="src">
+        Sources: Xeryon, <a href="https://xeryon.com/precision-motion-technology-comparison/">Precision Motion Technologies Compared</a> (holding at power-off, current while holding, magnetic field, 400 / 1.4 / 2000 mm/s speeds, 78 nm XLA encoder) and
+        <a href="https://xeryon.com/technology/crossfixx-piezo-motor/">CrossFixx piezo motor</a> (166 kHz, ~1 µm tip motion).
+        Xeryon's comparison does not give backlash figures, worm gear data or field strengths, so those use textbook relations with example values.
+        Every example value is marked <code>[assumed]</code> at the top of <code>src/drive-comparison/model.js</code>; swap in datasheet numbers for the parts you care about.
+      </p>
+    </section>
+
+    <script type="module" src="/src/drive-comparison/main.js"></script>
+  </body>
+</html>
