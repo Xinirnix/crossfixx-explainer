@@ -182,6 +182,47 @@ export function buildScene(renderer) {
     tag.position.set(e.position.x, e.position.y, e.position.z + 0.2);
     plateDeform.add(tag);
   }
+  // Nodal-point view: probe dots ride on the deforming plate, their full-cycle paths are drawn
+  // in the fixed plate frame, and a ring marks the centre hole where both modes have zero motion.
+  const nodal = new THREE.Group();          // fixed frame (does not deform)
+  nodal.visible = false;
+  plateGroup.add(nodal);
+  const nodalProbes = new THREE.Group();    // deforms with the plate
+  nodalProbes.visible = false;
+  plateDeform.add(nodalProbes);
+  const zFront = PLATE_T / 2 + 0.45;
+  const probeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const nodeMat = new THREE.MeshBasicMaterial({ color: 0x6dffb0 });
+  const probePaths = [];
+  const PATH_N = 48;
+  for (let iy = -2; iy <= 2; iy++) {
+    for (let ix = -2; ix <= 2; ix++) {
+      const px = ix * (h - 1.2) / 2;
+      const py = iy * (h - 1.2) / 2;
+      const centre = ix === 0 && iy === 0;
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(centre ? 0.45 : 0.3, 12, 8), centre ? nodeMat : probeMat);
+      dot.position.set(px, py, zFront);
+      nodalProbes.add(dot);
+      if (centre) continue;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array((PATH_N + 1) * 3), 3));
+      const r = Math.hypot(px, py) / (Math.SQRT2 * (h - 1.2));
+      const c = new THREE.Color(0x5fd3ff).lerp(new THREE.Color(0xffb35c), r);
+      const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.9 }));
+      line.userData = { px, py, z: zFront };
+      nodal.add(line);
+      probePaths.push(line);
+    }
+  }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.18, 12, 48), nodeMat.clone());
+  ring.material.transparent = true;
+  ring.position.z = zFront + 0.1;
+  nodal.add(ring);
+  const nodeLabel = label('Node: zero motion in both modes → mount stays still', 'note node');
+  nodeLabel.position.set(0, -2.9, zFront + 0.5);
+  nodal.add(nodeLabel);
+  nodal.userData = { ring, PATH_N, nodeLabel };
+
   addLabel(plateGroup, 'Piezo plate · 2 resonant modes', new THREE.Vector3(-h - 1, h - 2, 0), 'left');
   addLabel(plateGroup, 'Centre clamp (nodal point)', new THREE.Vector3(h + 1, 2.2, 0), 'right');
 
@@ -332,7 +373,7 @@ export function buildScene(renderer) {
   return {
     scene,
     groups: { frame, plateGroup, tipBase, linStrip, linDriven, rotStrip, rotDriven, linear, rotary },
-    plateDeform, tip, electrodes, ghost, ghostN, ghostPos, ghostCol, ghostDot, scaleNote, labels,
+    plateDeform, tip, electrodes, nodal, nodalProbes, probePaths, ghost, ghostN, ghostPos, ghostCol, ghostDot, scaleNote, labels,
     sparks, sparkState,
     rodSlide, stripSlide, rotorSpin, rotorBody, linArrow, rotArrow,
   };
