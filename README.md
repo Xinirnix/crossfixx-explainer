@@ -67,3 +67,21 @@ Files:
 - `src/crossfixx/meta.js`, `thumb.jpg`: the landing-page card
 
 Keys: L linear, R rotary, X exploded, S stick-slip, Space pause, 1/2/3 phase −90/0/+90.
+
+### Multi-axis stacks and error motion (`multi-axis/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/multi-axis/)**
+
+An XY, XYZ or XYθ serial stack (not a hexapod) with a tool arm on top. Every stage's small error motions are drawn ×1000 and carried by everything above it, so you can see a 50 µrad wobble turn into a 5 µm tip error at 100 mm, and why the bottom stage has the longest Abbe lever. Sliders for wobble, arm length, radial and axial run-out, the run-out/wobble phase and linear-stage pitch/yaw; presets use the rotary figures Xeryon quotes (XRT-U-40 -PB: radial < 1 µm, axial < 0.5 µm, tilt < 50 µrad; XRT-A: radial down to 500 nm, axial < 1 µm, tilt < 100 µrad). The linear-stage angle is illustrative.
+
+Files:
+
+- `multi-axis/index.html`: the page and HUD markup
+- `src/multi-axis/errors.js`: the model. First-order tip error `δ = Σ t + ω × (tip − pivot)` over every stage, rotary tilt and run-out per turn, Xeryon presets, stack geometry, exaggeration factor.
+- `src/multi-axis/scene.js`: stack geometry; each stage is an error frame at its pivot, so errors compound up the stack in the 3D view the same way they do in the equation
+- `src/multi-axis/main.js`: state, controls, error budget, animation, keyboard
+- `src/multi-axis/captions.js`: the sentences in the left panel (live numbers)
+- `src/multi-axis/inset.js`: real-scale tip error chart (top view and height vs angle)
+- `src/multi-axis/style.css`, `meta.js`, `thumb.jpg`: styling and the landing-page card
+
+Keys: 1/2/3 XY/XYZ/XYθ, U arm up, O arm out, Space pause, R reset view.
