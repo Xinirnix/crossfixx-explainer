@@ -15,6 +15,7 @@ const state = {
   driven: 'linear',      // 'linear' | 'rotary'
   mode: 'standing',      // 'standing' (CrossFixx) | 'stickslip' (contrast)
   exploded: false,
+  nodal: false,          // nodal-point fixation view
   paused: false,
   phase: 90,             // degrees, normal mode relative to bending mode
   amp: 1,                // 0..1 drive amplitude
@@ -111,6 +112,16 @@ document.querySelectorAll('[data-phase]').forEach((b) => {
 });
 $('pause').addEventListener('click', () => { state.paused = !state.paused; syncHud(); });
 $('reset').addEventListener('click', resetView);
+$('nodal').addEventListener('click', () => setNodal(!state.nodal));
+
+// Camera glide used by the nodal view (front close-up of the plate) and Reset view.
+let camGoal = null;
+const NODAL_VIEW = { pos: new THREE.Vector3(6, PLATE_CY + 4, 52), target: new THREE.Vector3(0, PLATE_CY - 1, 0) };
+function setNodal(on) {
+  state.nodal = on;
+  if (on) { state.exploded = false; camGoal = NODAL_VIEW; } else { camGoal = HOME; }
+  syncHud();
+}
 
 function setPhase(p) {
   state.phase = p;
@@ -118,10 +129,12 @@ function setPhase(p) {
   syncHud();
 }
 function resetView() {
+  camGoal = null;
   camera.position.copy(HOME.pos);
   controls.target.copy(HOME.target);
   controls.update();
 }
+controls.addEventListener('start', () => { camGoal = null; }); // user drag cancels the glide
 
 window.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' && e.code === 'Space') e.preventDefault();
@@ -129,6 +142,7 @@ window.addEventListener('keydown', (e) => {
     case 'l': state.driven = 'linear'; break;
     case 'r': state.driven = 'rotary'; break;
     case 'x': state.exploded = !state.exploded; break;
+    case 'n': setNodal(!state.nodal); return;
     case 's': state.mode = state.mode === 'standing' ? 'stickslip' : 'standing'; break;
     case ' ': state.paused = !state.paused; e.preventDefault(); break;
     case '1': setPhase(-90); return;
@@ -161,6 +175,12 @@ function syncHud() {
   setSeg('mode', state.mode);
   document.body.classList.toggle('stickslip', ss);
   $('pause').textContent = state.paused ? 'Play' : 'Pause';
+  $('nodal').classList.toggle('on', state.nodal);
+  document.body.classList.toggle('nodal', state.nodal);
+  S.nodal.visible = S.nodalProbes.visible = state.nodal;
+  S.nodal.userData.nodeLabel.visible = state.nodal;
+  for (const l of S.labels) l.visible = !state.nodal; // declutter the close-up
+  updateElectrodePanel();
   $('pause').classList.toggle('on', state.paused);
 
   $('phase-val').textContent = `${state.phase > 0 ? '+' : ''}${fmt(state.phase)}°`;
@@ -186,6 +206,43 @@ function syncHud() {
   if (html !== lastCaption) {
     $('captions').innerHTML = html;
     lastCaption = html;
+  }
+}
+
+// ---------- Electrode pattern panel (nodal view) ----------
+// Front electrodes: diagonal pair A (top-left + bottom-right) and pair B (top-right + bottom-left).
+// Expansion mode N = A + B, bending mode T = A − B. So A and B in phase drive only the expansion mode,
+// 180° apart only the bending mode, and 90° apart both modes 90° apart: the ellipse.
+const QUADS = [['A', 0, 0], ['B', 1, 0], ['B', 0, 1], ['A', 1, 1]];
+function miniPlate(id, a, b, caption) {
+  const fill = (v) => (v === 'q' ? '#b98cff' : v > 0 ? 'var(--hot)' : v < 0 ? 'var(--cool)' : 'rgba(255,255,255,0.12)');
+  const val = { A: a, B: b };
+  const cells = QUADS.map(([ph, cx, cy]) => `<rect x="${3 + cx * 22}" y="${3 + cy * 22}" width="20" height="20" rx="2" fill="${fill(val[ph])}" fill-opacity="0.85" data-ph="${ph}"/><text x="${13 + cx * 22}" y="${17 + cy * 22}">${ph}</text>`).join('');
+  return `<figure id="${id}"><svg viewBox="0 0 48 48">${cells}<circle cx="24" cy="24" r="4" class="hole"/></svg><figcaption>${caption}</figcaption></figure>`;
+}
+$('electrodes').innerHTML = `
+  <p class="el-title">Front electrodes: two diagonal pairs, A and B</p>
+  <div class="el-row">
+    ${miniPlate('el-inphase', 1, 1, '<b>A, B in phase</b>expansion mode only: tip moves into the strip')}
+    ${miniPlate('el-anti', 1, -1, '<b>A, B 180° apart</b>bending mode only: tip moves along the strip')}
+    ${miniPlate('el-quad', 1, 'q', '<b>A, B 90° apart</b>both modes, a quarter cycle apart: the ellipse')}
+  </div>
+  <div class="el-live"><svg id="el-live" viewBox="0 0 48 48"></svg><p id="el-live-text"></p></div>`;
+function updateElectrodePanel() {
+  if (!state.nodal) return;
+  const ss = state.mode === 'stickslip';
+  $('el-live-text').innerHTML = ss
+    ? 'Stick-slip drives no resonant modes, so there is no shared node: this view only applies to CrossFixx.'
+    : `Live drive on A and B. Every point of the plate traces its own path except the centre, where <b>both</b> modes are still.`;
+}
+const liveCells = QUADS.map(([ph, cx, cy]) => `<rect x="${3 + cx * 22}" y="${3 + cy * 22}" width="20" height="20" rx="2" data-ph="${ph}"/>`).join('');
+$('el-live').innerHTML = `${liveCells}<circle cx="24" cy="24" r="4" class="hole node"/>`;
+const liveRects = [...$('el-live').querySelectorAll('rect')];
+function drawElectrodeLive(Nn, Tn, amp) {
+  for (const r of liveRects) {
+    const v = (r.dataset.ph === 'A' ? (Nn + Tn) / 2 : (Nn - Tn) / 2) * amp;
+    r.setAttribute('fill', v >= 0 ? '#ff8a3d' : '#3db4ff');
+    r.setAttribute('fill-opacity', (0.15 + 0.85 * Math.min(1, Math.abs(v))).toFixed(2));
   }
 }
 
@@ -274,6 +331,35 @@ function tick() {
   S.plateDeform.matrix.set(1 + ex, sh, 0, 0, 0, 1 + ex, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
   S.plateDeform.matrixWorldNeedsUpdate = true;
 
+  // Nodal view: full-cycle path of each probe point, drawn in the fixed plate frame
+  if (state.nodal) {
+    const N = S.nodal.userData.PATH_N;
+    const phi = ss ? null : (state.phase * Math.PI) / 180;
+    for (const line of S.probePaths) {
+      const { px, py, z } = line.userData;
+      const arr = line.geometry.attributes.position.array;
+      for (let i = 0; i <= N; i++) {
+        const a = (i / N) * Math.PI * 2;
+        let x; let y;
+        if (ss) { x = stickSlip(a, d.Aum, d.dirSS).x; y = 0; } else { x = d.Aum * Math.sin(a); y = d.Aum * Math.sin(a + phi); }
+        const exA = (y * UM) / half;
+        const shA = -(x * UM) / half;
+        arr[i * 3] = px + exA * px + shA * py;
+        arr[i * 3 + 1] = py + exA * py;
+        arr[i * 3 + 2] = z;
+      }
+      line.geometry.attributes.position.needsUpdate = true;
+      line.geometry.computeBoundingSphere();
+    }
+    S.nodal.userData.ring.material.opacity = 0.55 + 0.35 * Math.sin(clock.elapsedTime * 3);
+  }
+  if (camGoal) {
+    const k = Math.min(1, dt * 4);
+    camera.position.lerp(camGoal.pos, k);
+    controls.target.lerp(camGoal.target, k);
+    if (camera.position.distanceTo(camGoal.pos) < 0.05) camGoal = null;
+  }
+
   // Electrode drive: A = (N+T)/2, B = (N-T)/2 → same signal excites expansion, opposite excites bending
   const A0 = Math.max(d.Aum, 1e-6);
   const Tn = ss ? tx / A0 : Math.sin(theta);
@@ -283,6 +369,7 @@ function tick() {
     const v = (el.userData.phase === 'A' ? (Nn + Tn) / 2 : (Nn - Tn) / 2) * amp;
     el.material.emissive.copy(v >= 0 ? red : blue).multiplyScalar(Math.abs(v) * 0.9);
   }
+  if (state.nodal) drawElectrodeLive(Nn, Tn, amp);
 
   // Ghost path
   const pos = S.ghostPos;

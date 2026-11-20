@@ -19,7 +19,27 @@ html, body { height: 100%; overflow: hidden; }
 #captions p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; color: #d3d8e0; }
 #captions p:first-child { color: var(--text); }
 #captions b { color: var(--warn); }
+#captions i { font-style: normal; font-weight: 600; color: #6dffb0; }
 .keys { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font: 11px var(--mono); color: var(--muted); line-height: 1.6; }
+
+/* Nodal-mount electrode panel (only in the nodal view) */
+#electrodes { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+body.nodal #electrodes { display: block; }
+body.nodal .keys { display: none; }
+.el-title { margin: 0 0 8px; font: 500 11px var(--mono); color: var(--muted); }
+.el-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#electrodes figure { margin: 0; text-align: center; }
+#electrodes svg { width: 48px; height: 48px; display: block; margin: 0 auto 4px; }
+#electrodes svg text { font: 600 8px var(--mono); fill: #0a0c10; text-anchor: middle; }
+#electrodes .hole { fill: var(--bg); stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; }
+#electrodes .hole.node { stroke: #6dffb0; stroke-width: 1.5; }
+#electrodes figcaption { font-size: 10.5px; line-height: 1.35; color: var(--muted); }
+#electrodes figcaption b { display: block; color: var(--text); font-weight: 500; }
+.el-live { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+.el-live svg { flex: none; margin: 0 !important; }
+.el-live p { margin: 0; font-size: 12px; line-height: 1.45; color: #d3d8e0; }
+.el-live b { color: #6dffb0; font-weight: 600; }
+.part-label.note.node { color: #6dffb0; border-color: rgba(109, 255, 176, 0.4); }
 
 /* Toggles */
 .toggles { position: fixed; top: 16px; right: 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }

@@ -1,5 +1,5 @@
 // Short explanatory sentences that follow the current state.
-import { F0_KHZ, STICKSLIP_HZ } from './physics.js';
+import { F0_KHZ, STICKSLIP_HZ, EXAGGERATION } from './physics.js';
 
 const fmt = (v, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
 
@@ -14,6 +14,13 @@ export function captions(s) {
     lines.push(`The tip extends slowly, so friction makes the ${part} stick and follow.`);
     lines.push(`Then it snaps back so fast that the ${part}'s inertia lets it slip: one small net step per cycle.`);
     lines.push(`It runs at audible rates (~${fmt(STICKSLIP_HZ / 1000)} kHz here), wears the contact, and moves only a few mm/s.`);
+    return lines;
+  }
+
+  if (s.nodal) {
+    lines.push('<i>Nodal mount.</i> The plate is held only by a pin through its centre hole. That is not a weak spot: it is the one point that never moves.');
+    lines.push('In the expansion mode the plate grows and shrinks about its centre; in the bending mode it shears about its centre. Both modes have a node at the same place, so their sum does too.');
+    lines.push(`The dots trace their paths (×${EXAGGERATION}): bigger further out, zero at the centre. So the clamp passes no vibration to the housing and wastes no energy.`);
     return lines;
   }
 
@@ -47,7 +54,7 @@ export function captions(s) {
   }
 
   if (s.R < 0.5) {
-    lines.push(`At ${fmt(s.f, 1)} kHz the drive is ${fmt(Math.abs(s.f - F0_KHZ), 1)} kHz off the ${F0_KHZ} kHz resonance. The modes barely respond, so the ellipse and the speed collapse.`);
+    lines.push(`At ${fmt(s.f, 1)} kHz the drive is ${fmt(Math.abs(s.f - F0_KHZ), 1)} kHz off this example's ${F0_KHZ} kHz resonance (Xeryon motors resonate somewhere in 80–180 kHz). The modes barely respond, so the ellipse and the speed collapse.`);
   } else if (!s.exploded) {
     lines.push('Amplitude sets the size of the ellipse, and with it the speed and force. Because the drive frequency is ultrasonic, the motor is silent.');
   }
