@@ -9,7 +9,9 @@
 // so net step per cycle ∝ sin φ: maximal at ±90°, zero at 0° and 180°,
 // and its sign (direction) follows the sign of φ.
 
-export const F0_KHZ = 166;          // shared resonance of both modes
+// Shared resonance of both modes. 166 kHz is one example: Xeryon quotes operating frequencies
+// anywhere from about 80 to 180 kHz depending on motor size and page, so treat it as illustrative.
+export const F0_KHZ = 166;
 export const Q = 30;                // mechanical quality factor (band ≈ F0/Q ≈ 5.5 kHz)
 export const TIP_AMP_UM = 1.0;      // peak tip displacement at amplitude = 1, on resonance
 export const EXAGGERATION = 1000;   // display scale for the tip motion and per-cycle travel
