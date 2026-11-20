@@ -1,30 +1,9 @@
-:root {
-  --bg: #0a0c10;
-  --panel: rgba(16, 20, 27, 0.72);
-  --line: rgba(255, 255, 255, 0.09);
-  --text: #e8ebf0;
-  --muted: #8b94a3;
-  --hot: #ffb35c;
-  --cool: #5fd3ff;
-  --warn: #ff6b8a;
-  --sans: 'Inter', system-ui, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, monospace;
-}
+@import '../shared/base.css';
 
-* { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); }
+html, body { height: 100%; overflow: hidden; }
 #app canvas { display: block; }
 .label-layer { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 .brand, .captions-panel, .toggles, .readout, .controls { z-index: 2; }
-input:focus-visible, button:focus-visible { outline: 1px solid rgba(95, 211, 255, 0.6); outline-offset: 2px; }
-input:focus:not(:focus-visible) { outline: none; }
-
-button {
-  font: 500 12px var(--sans); color: var(--text); background: transparent;
-  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer;
-}
-button:hover { border-color: rgba(255, 255, 255, 0.25); }
-button.on { background: rgba(95, 211, 255, 0.14); border-color: rgba(95, 211, 255, 0.5); color: #fff; }
 
 /* Brand */
 .brand { position: fixed; top: 18px; left: 22px; display: flex; align-items: center; gap: 12px; }
