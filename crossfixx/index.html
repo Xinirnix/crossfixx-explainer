@@ -19,7 +19,8 @@
 
     <aside class="captions-panel">
       <div id="captions"></div>
-      <p class="keys">L linear · R rotary · X exploded · S stick-slip · Space pause · 1 / 2 / 3 phase −90° / 0° / +90°</p>
+      <div id="electrodes"></div>
+      <p class="keys">L linear · R rotary · X exploded · N nodal mount · S stick-slip · Space pause · 1 / 2 / 3 phase −90° / 0° / +90°</p>
     </aside>
 
     <nav class="toggles">
@@ -34,6 +35,7 @@
       </div>
       <div class="row">
         <button id="pause" class="btn">Pause</button>
+        <button id="nodal" class="btn" title="Show where the plate is held and why the mount does not vibrate">Nodal mount</button>
         <button id="reset" class="btn">Reset view</button>
       </div>
     </nav>
@@ -49,7 +51,7 @@
         <dt>Net step</dt><dd id="r-step"></dd>
         <dt>Speed (model)</dt><dd id="r-speed"></dd>
       </dl>
-      <p class="fine">Speed is an ideal no-slip estimate (2·A·f·sin φ, minus friction loss). Xeryon quotes up to 1000 mm/s.</p>
+      <p class="fine">166 kHz is one example resonance: Xeryon motors run somewhere in 80–180 kHz depending on size. Speed is an ideal no-slip estimate (2·A·f·sin φ, minus friction loss). Xeryon quotes up to 1000 mm/s.</p>
     </section>
 
     <footer class="controls">
@@ -71,7 +73,7 @@
           <span id="res-band" class="res-band"></span><span id="res-mark" class="res-mark"></span>
           <input id="freq" type="range" min="80" max="180" step="0.1" />
         </span>
-        <span class="hint">80 – 180 kHz · resonance band shaded</span>
+        <span class="hint">Xeryon range 80 – 180 kHz · this example resonates at 166 kHz (shaded)</span>
       </label>
       <label class="ctl">
         <span class="name">Slow-motion <em id="rate-val"></em></span>
