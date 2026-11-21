@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Encoder interpolation · Xeryon explainers</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2711%27 fill=%27none%27 stroke=%27%235fd3ff%27 stroke-width=%273%27/%3E%3Cpath d=%27M16 16 L26 10%27 stroke=%27%23ffb35c%27 stroke-width=%273%27/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="hub-link" href="../">← All</a>
+      <h1>How an optical encoder reads nanometres from a 20 µm grating</h1>
+      <span class="badge">encoder · interpolation</span>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div class="lede">
+          <p>The read head shines light on a scale with a fine grating. As the scale moves, the photodiodes see the brightness pattern slide past and turn it into two signals, a <em>sine</em> and a <em>cosine</em>, 90° apart. One full wave of both is one grating period: <b>20 µm</b> on SmarAct's METIRIO scale.</p>
+          <p>Plot sine against cosine and the point goes round a circle, once per period. Its direction says which way the stage moves. Its <em>angle</em> says where inside the period the head is: <b>x = φ / 2π · 20 µm</b>. Split the circle into 4096 counts and one count is 4.9 nm. That is interpolation.</p>
+          <p>It only works if the circle really is a circle centred on zero. An offset shifts it, a gain mismatch squashes it, a phase error tilts it. The angle the electronics read is then wrong by an amount that repeats every period: the <em>cyclic error</em>.</p>
+        </div>
+        <ol class="steps">
+          <li><b>1</b><span>Grating moves under the head → sin and cos</span></li>
+          <li><b>2</b><span>Full turns of the circle → which period</span></li>
+          <li><b>3</b><span>Angle in the circle → where inside it</span></li>
+          <li><b>4</b><span>Ellipse instead of circle → error every period</span></li>
+        </ol>
+      </section>
+
+      <section class="lab">
+        <div class="charts">
+          <div class="card wide">
+            <div class="card-h"><h2>Scale under the read head</h2><span class="legend">drag to move the scale · <i class="k-true"></i>true position <i class="k-count"></i>count</span></div>
+            <canvas id="c-scale"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-h"><h2>Signals from the photodiodes</h2><span class="legend"><i class="k-cos"></i>cos <i class="k-sin"></i>sin <i class="k-ideal"></i>ideal</span></div>
+            <canvas id="c-signals"></canvas>
+          </div>
+          <div class="card lis">
+            <div class="card-h"><h2>Lissajous figure</h2><span class="legend">drag to turn · <i class="k-ideal"></i>ideal <i class="k-sin"></i>measured <i class="k-cos"></i>read angle</span></div>
+            <canvas id="c-lissajous"></canvas>
+          </div>
+          <div class="card wide">
+            <div class="card-h"><h2>Position error across one period</h2><span class="legend"><i class="k-cos"></i>cyclic error <i class="k-stair"></i>counter output <i class="k-sin"></i>single noisy readings</span></div>
+            <canvas id="c-error"></canvas>
+          </div>
+          <div class="card wide result">
+            <dl id="readout"></dl>
+            <p id="verdict"></p>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <div class="presets" id="presets"></div>
+          <div class="row">
+            <button id="correct">Correct the ellipse</button>
+            <button id="play">Pause</button>
+          </div>
+          <label class="ctl"><span class="name">Scan speed (on screen)</span><em></em><input id="speed" type="range" min="0" max="20" step="0.5" value="4" /></label>
+          <label class="ctl"><span class="name">Draw Lissajous distortion</span><em></em><select id="exag"><option value="1">×1 · true size</option><option value="10" selected>×10</option><option value="30">×30</option></select></label>
+          <div id="controls"></div>
+          <p class="fine">Signal errors are fractions of the signal amplitude. Keys: 1–6 presets, C correction, Space pause.</p>
+        </aside>
+      </section>
+
+      <section class="why">
+        <h2>Why the error repeats once or twice per period</h2>
+        <div class="why-grid">
+          <div><b>Offset</b><p>The circle's centre moves, but the electronics still measure the angle from zero. On the side the circle moved towards, the angle reads too small; on the far side, too big. One bump per turn: error ≈ <code>P/2π · o</code>, about 32 nm for a 1 % offset on a 20 µm period.</p></div>
+          <div><b>Gain mismatch</b><p>One signal is bigger than the other, so the circle becomes an ellipse along an axis. The angle is pulled towards the long axis twice per turn: error ≈ <code>P/2π · g/2</code>, again about 32 nm for a 2 % mismatch.</p></div>
+          <div><b>Phase error</b><p>The signals are not exactly 90° apart, so the ellipse is tilted 45°. Also twice per turn: error ≈ <code>P/2π · δ/2</code>, about 56 nm for 2°. It adds a constant shift too, which homing hides.</p></div>
+          <div><b>Correction</b><p>The interpolator records the Lissajous figure, fits an ellipse, and maps it back onto a circle before taking the angle (Heydemann's method). Here the fit is perfect, so the error drops to the count step. Noise and higher harmonics are what is left in practice.</p></div>
+        </div>
+      </section>
+
+      <section class="notes">
+        <div>
+          <h2>From the sources</h2>
+          <ul>
+            <li>SmarAct: an array of photodiodes turns the moving brightness pattern into "analog sine and cosine signals", 90° apart, "a so-called quadrature signal". One sine alone can't tell direction.</li>
+            <li>SmarAct: plotted against each other they form a Lissajous figure, ideally a circle; one turn is one scale period, the turning direction is the direction of motion.</li>
+            <li>SmarAct: "The METIRIO® scale uses a 20 µm pitch", and position within the period is x = φ / 2π · 20 µm. The quality of the figure shows "signal balance, phase accuracy and alignment quality".</li>
+            <li>Xeryon's encoders resolve 1250, 312, 78, 5 or 1 nm per count (Controller &amp; Connection Manual). That count is what the controller closes the loop on.</li>
+          </ul>
+          <p class="fine"><a href="https://www.smaract.com/en/metrology/technologies/operating-principles-of-optical-encoders">SmarAct, Operating principles of optical encoders</a></p>
+        </div>
+        <div>
+          <h2>Our model (editable in <code>src/encoder-interpolation/model.js</code>)</h2>
+          <ul>
+            <li>cos = A(1 + g/2)·cos θ + o<sub>x</sub>, sin = A(1 − g/2)·sin(θ + δ) + o<sub>y</sub>, read angle = atan2(sin, cos). Standard textbook relations; SmarAct doesn't describe the error terms.</li>
+            <li>The first-order error formulas above are textbook approximations; the plot is computed exactly from atan2.</li>
+            <li>Assumed: the 4 and 40 µm periods, the interpolation factors, every error and noise value on the sliders and presets. Replace them with datasheet values for a real head.</li>
+            <li>Not modelled: higher signal harmonics, contamination patches, the reference mark, interpolator latency.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="link-on">
+        <p>The controller only sees counts. On the <a href="../closed-loop/">closed-loop page</a> PTOL, the zones and every gain are in these counts, so a cyclic error larger than PTOL means the stage lands "within tolerance" at a place that is off by up to the cyclic error, and lands differently in every period.</p>
+      </section>
+    </main>
+
+    <script type="module" src="/src/encoder-interpolation/main.js"></script>
+  </body>
+</html>
