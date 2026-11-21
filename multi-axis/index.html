@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multi-axis stacks and error motion · Xeryon explainers</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M6 26h20M10 26V8M10 8l12 2%27 fill=%27none%27 stroke=%27%23ffb35c%27 stroke-width=%273%27/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <header class="brand">
+      <a class="hub-link" href="../" title="All explainers">← All</a>
+      <h1>Multi-axis stacks and error motion</h1>
+      <span id="badge" class="badge">serial stack · ×1000 shown</span>
+    </header>
+
+    <aside class="captions-panel">
+      <div id="captions"></div>
+      <p class="keys">1 / 2 / 3 XY · XYZ · XYθ · U arm up · O arm out · Space pause · R reset view</p>
+    </aside>
+
+    <nav class="toggles">
+      <div class="seg" data-seg="config">
+        <button data-value="XY">XY</button><button data-value="XYZ">XYZ</button><button data-value="XYT">XYθ</button>
+      </div>
+      <div class="seg" data-seg="arm">
+        <button data-value="up">Arm up</button><button data-value="out">Arm out</button>
+      </div>
+      <div class="seg" data-seg="preset" title="Rotary error-motion figures from Xeryon catalog pages">
+        <button data-value="XRT-U-40 -PB">XRT-U-40 -PB</button><button data-value="XRT-U-40 -SB">-SB</button><button data-value="XRT-A">XRT-A</button>
+      </div>
+      <div class="row">
+        <button id="pause" class="btn">Pause</button>
+        <button id="reset" class="btn">Reset view</button>
+      </div>
+    </nav>
+
+    <section class="readout">
+      <div class="formula" id="formula"></div>
+      <canvas id="inset"></canvas>
+      <div class="inset-legend"><span class="hot">tip error, one turn</span><span class="cool">run-out</span></div>
+      <dl id="parts"></dl>
+      <dl class="totals">
+        <dt>Tip error now</dt><dd id="r-now"></dd>
+        <dt>Peak, one turn</dt><dd id="r-peak" class="strong"></dd>
+        <dt>Lateral / vertical</dt><dd id="r-split"></dd>
+      </dl>
+      <p class="fine">First-order model: δ = t + ω × (tip − pivot), summed over every stage under the tip. Angles in µrad × lever in mm ÷ 1000 = µm.</p>
+    </section>
+
+    <footer class="controls">
+      <label class="ctl" id="wobble-row">
+        <span class="name">Rotary wobble ε <em id="wobble-val"></em></span>
+        <input id="wobble" type="range" min="0" max="200" step="1" />
+        <span class="hint">tilt error motion · XRT-U-40: &lt; 50 µrad</span>
+      </label>
+      <label class="ctl">
+        <span class="name">Arm length L <em id="arm-val"></em></span>
+        <input id="arm" type="range" min="0" max="200" step="1" />
+        <span class="hint">tool / sample distance from the top stage</span>
+      </label>
+      <label class="ctl" id="radial-row">
+        <span class="name">Radial run-out <em id="radial-val"></em></span>
+        <input id="radial" type="range" min="0" max="5" step="0.05" />
+        <span class="hint">sideways wander of the axis · &lt; 1 µm</span>
+      </label>
+      <label class="ctl" id="axial-row">
+        <span class="name">Axial run-out <em id="axial-val"></em></span>
+        <input id="axial" type="range" min="0" max="3" step="0.05" />
+        <span class="hint">up-down wander of the axis · &lt; 0.5 µm</span>
+      </label>
+      <label class="ctl" id="phase-row">
+        <span class="name">Run-out vs wobble ψ <em id="phase-val"></em></span>
+        <input id="phase" type="range" min="0" max="360" step="1" />
+        <span class="hint">0° adds, 180° partly cancels</span>
+      </label>
+      <label class="ctl">
+        <span class="name">Linear pitch / yaw α <em id="lin-val"></em></span>
+        <input id="lin" type="range" min="0" max="200" step="1" />
+        <span class="hint">per linear stage · illustrative, see datasheet</span>
+      </label>
+    </footer>
+
+    <script type="module" src="/src/multi-axis/main.js"></script>
+  </body>
+</html>
