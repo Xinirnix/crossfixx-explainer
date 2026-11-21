@@ -90,3 +90,19 @@ Files:
 Keys: 1/2/3 drive, Z zoom to the contact, M listen, Space pause.
 
 Source: [Xeryon, Ultrasonic piezo motors](https://xeryon.com/technology/ultrasonic-piezo-motors-the-worlds-smallest-high-performance-motion-technology/). Rod, contact and frame values are illustrative orders of magnitude, not Xeryon data; Xeryon gives ~100 kHz as typical; this page reuses the CrossFixx page's 166 kHz example.
+
+### Closed-loop control and tuning (`closed-loop/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/closed-loop/)**
+
+How the controller turns encoder error into amplitude and phase, slows near the target, and switches the drive off inside PTOL (falling back to PTO2 after TOUT). Every slider is a Xeryon controller parameter (FREQ, FRQ2, PROP, PRO2, ZON1, ZON2, PTOL, PTO2, TOUT, SSPD, MASS, DUCO), and the presets reproduce the symptoms in Xeryon's Controller & Connection Manual: landing oscillation, unstable motion below resonance, stalling, overshoot with an unset MASS, and insufficient force tripping ELIM.
+
+Files:
+
+- `closed-loop/index.html`: the page, loop diagram and notes on what comes from the manual vs. the model
+- `src/closed-loop/sim.js`: controller + motor + encoder simulation (no DOM, runs in Node). Plant and gain constants are at the top; the header comment lists which behaviour is from the manual and which is our model.
+- `src/closed-loop/charts.js`: the move, landing (encoder counts) and drive charts, and the tip ellipse
+- `src/closed-loop/main.js`: controls, presets, fault table, cursor
+- `src/closed-loop/style.css`, `meta.js`, `thumb.jpg`
+
+Try the model from the command line: `node -e "import('./src/closed-loop/sim.js').then(m => console.log(m.simulate({ PROP: 2000, PRO2: 2000 }).summary))"`
