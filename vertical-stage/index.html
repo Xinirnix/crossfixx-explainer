@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vertical Stage Mass Compensation · Xeryon explainers</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 4v24M9 11l7-7 7 7%27 fill=%27none%27 stroke=%27%235fd3ff%27 stroke-width=%273%27/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <header class="brand">
+      <a class="hub-link" href="../" title="All explainers">← All</a>
+      <h1>Mass compensation on a vertical stage</h1>
+      <span id="status-badge" class="badge">holding</span>
+    </header>
+
+    <aside class="captions-panel">
+      <div id="captions"></div>
+      <p class="keys">↑ / ↓ move · H hold · M shuttle · P power · C cycle compensation · Space pause</p>
+    </aside>
+
+    <nav class="toggles">
+      <div class="seg" data-seg="powered" aria-label="Motor power">
+        <button data-value="on">Power on</button><button data-value="off">Power off</button>
+      </div>
+      <div class="seg" data-seg="cmd" aria-label="Command">
+        <button data-value="up">▲ Up</button><button data-value="hold">Hold</button><button data-value="down">▼ Down</button><button data-value="shuttle">Shuttle</button>
+      </div>
+      <div class="row">
+        <button id="arrows" class="btn on">Force arrows</button>
+        <button id="pause" class="btn">Pause</button>
+        <button id="reset" class="btn">Reset view</button>
+      </div>
+    </nav>
+
+    <section class="readout">
+      <h2>Force balance on the friction contact</h2>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">Weight ↓</span><span class="bar-track"><span id="bar-w" class="bar w"></span></span><span id="v-w" class="bar-val"></span></div>
+        <div class="bar-row"><span class="bar-name">Compensation ↑</span><span class="bar-track"><span id="bar-c" class="bar c"></span></span><span id="v-c" class="bar-val"></span></div>
+        <div class="bar-row net"><span class="bar-name">Left for the motor</span><span class="bar-track"><span class="lim spec"></span><span class="lim drive"></span><span id="bar-n" class="bar n"></span></span><span id="v-n" class="bar-val"></span></div>
+      </div>
+      <div class="bar-key"><span class="k spec">½ drive: in spec</span><span class="k drive">3 N: drive / holding limit</span></div>
+      <canvas id="chart"></canvas>
+      <div class="bar-key"><span class="k range">Xeryon datasheet ranges</span><span class="k inspec">in spec in this model</span></div>
+      <dl>
+        <dt>In-spec payload</dt><dd id="r-range" class="strong"></dd>
+        <dt>Speed up / down</dt><dd id="r-speed"></dd>
+        <dt>Unpowered</dt><dd id="r-off"></dd>
+        <dt>Carriage height</dt><dd id="r-z"></dd>
+      </dl>
+      <p class="fine">Driving and holding force 3 N, holding stiffness 1 N/µm, 100 mm/s and 40 mm stroke are from Xeryon's XVS-3-40 datasheet. Carriage mass, spring rate and the "half the drive force" spec rule are assumptions, set in <code>physics.js</code>. Xeryon's product page says up to 500 g with compensation; the datasheet's MC1–MC4 variants list 150–350 g.</p>
+    </section>
+
+    <footer class="controls">
+      <label class="ctl">
+        <span class="name">Payload <em id="payload-val"></em></span>
+        <input id="payload" type="range" min="0" max="700" step="5" />
+        <span class="presets">
+          <button data-payload="50">50 g</button><button data-payload="100">100 g</button><button data-payload="200">200 g</button><button data-payload="300">300 g</button><button data-payload="500">500 g</button>
+        </span>
+      </label>
+      <div class="ctl">
+        <span class="name">Compensation <em id="comp-val"></em></span>
+        <div class="seg" data-seg="comp">
+          <button data-value="off">Off</button><button data-value="mc1">MC1</button><button data-value="mc2">MC2</button><button data-value="max">Heavy</button>
+        </div>
+        <span class="hint">tuned to carry 0 / 200 / 300 / 450 g</span>
+      </div>
+      <div class="ctl">
+        <span class="name">Counterforce from</span>
+        <div class="seg" data-seg="type">
+          <button data-value="spring">Tension spring</button><button data-value="magnet">Magnet</button>
+        </div>
+        <span class="hint">spring force changes with height; magnet stays flat</span>
+      </div>
+      <label class="ctl">
+        <span class="name">Slow-motion <em id="slow-val"></em></span>
+        <input id="slow" type="range" min="0" max="1000" step="1" />
+        <span class="hint">shown speed ÷ real speed</span>
+      </label>
+    </footer>
+
+    <script type="module" src="/src/vertical-stage/main.js"></script>
+  </body>
+</html>

@@ -91,6 +91,40 @@ Keys: 1/2/3 drive, Z zoom to the contact, M listen, Space pause.
 
 Source: [Xeryon, Ultrasonic piezo motors](https://xeryon.com/technology/ultrasonic-piezo-motors-the-worlds-smallest-high-performance-motion-technology/). Rod, contact and frame values are illustrative orders of magnitude, not Xeryon data; Xeryon gives ~100 kHz as typical; this page reuses the CrossFixx page's 166 kHz example.
 
+### Closed-loop control and tuning (`closed-loop/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/closed-loop/)**
+
+How the controller turns encoder error into amplitude and phase, slows near the target, and switches the drive off inside PTOL (falling back to PTO2 after TOUT). Every slider is a Xeryon controller parameter (FREQ, FRQ2, PROP, PRO2, ZON1, ZON2, PTOL, PTO2, TOUT, SSPD, MASS, DUCO), and the presets reproduce the symptoms in Xeryon's Controller & Connection Manual: landing oscillation, unstable motion below resonance, stalling, overshoot with an unset MASS, and insufficient force tripping ELIM.
+
+Files:
+
+- `closed-loop/index.html`: the page, loop diagram and notes on what comes from the manual vs. the model
+- `src/closed-loop/sim.js`: controller + motor + encoder simulation (no DOM, runs in Node). Plant and gain constants are at the top; the header comment lists which behaviour is from the manual and which is our model.
+- `src/closed-loop/charts.js`: the move, landing (encoder counts) and drive charts, and the tip ellipse
+- `src/closed-loop/main.js`: controls, presets, fault table, cursor
+- `src/closed-loop/style.css`, `meta.js`, `thumb.jpg`
+
+Try the model from the command line: `node -e "import('./src/closed-loop/sim.js').then(m => console.log(m.simulate({ PROP: 2000, PRO2: 2000 }).summary))"`
+
+### Mass compensation on a vertical stage (`vertical-stage/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/vertical-stage/)**
+
+On a vertical stage the friction contact of the CrossFixx motor carries the whole moving weight. Without compensation the 3 N motor tops out at about 100 g of payload. A tension spring or magnetic counterweight carries most of the weight, so the in-spec window moves up (Xeryon's MC1/MC2 variants: 150–250 g, 250–350 g) instead of growing. Drag the payload past the window and the stage stalls going up, or slips even with the motor running. Switch power off and the preloaded tip self-locks: it only sags elastically (net force ÷ 1 N/µm) until the net force passes the 3 N holding force.
+
+Files:
+
+- `vertical-stage/index.html`: the page and HUD markup
+- `src/vertical-stage/physics.js`: weight, compensation force (spring `F0 + k·(z_mid − z)` or flat magnet), net load, force–speed line, holding and slip. Datasheet values (XVS-3-40: 3 N driving and holding force, 1 N/µm holding stiffness, 100 mm/s, 40 mm stroke) and the marked assumptions (carriage mass, spring rate, "half the drive force" spec rule) are at the top.
+- `src/vertical-stage/scene.js`: stage geometry (base, column, rails, carriage, strip, motor, spring, magnet, end stop), force arrows, labels
+- `src/vertical-stage/main.js`: state, animation loop (carriage motion, slipping, shuttle), controls, keyboard
+- `src/vertical-stage/chart.js`: net load vs payload chart with the in-spec and slip zones
+- `src/vertical-stage/captions.js`: the sentences in the left panel
+- `src/vertical-stage/meta.js`, `thumb.jpg`: the landing-page card
+
+Keys: ↑/↓ move, H hold, M shuttle, P power, C cycle compensation, Space pause.
+
 ### Friction drive vs screw, worm gear and magnetic drive (`drive-comparison/`)
 
 **[Open it](https://xinirnix.github.io/crossfixx-explainer/drive-comparison/)**
