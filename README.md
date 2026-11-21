@@ -41,7 +41,7 @@ Pick a short kebab-case slug (for example `vertical-stage`). Then:
    };
    ```
 
-That is all. You do **not** need to edit `vite.config.js` (any top-level folder with an `index.html` becomes a build input) or the landing page (it reads every `src/*/meta.js`). Because no shared file changes, explainers can be built in parallel without merge conflicts.
+That is all. The contact line at the bottom of every page is added automatically by `vite.config.js`. You do **not** need to edit `vite.config.js` (any top-level folder with an `index.html` becomes a build input) or the landing page (it reads every `src/*/meta.js`). Because no shared file changes, explainers can be built in parallel without merge conflicts.
 
 Use relative links between pages (`../`, `../crossfixx/`), never `/...`, because the site is served under `/crossfixx-explainer/` on GitHub Pages.
 

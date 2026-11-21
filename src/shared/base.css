@@ -27,3 +27,11 @@ button.on { background: rgba(95, 211, 255, 0.14); border-color: rgba(95, 211, 25
 /* "All explainers" link back to the hub, used in every explainer header */
 .hub-link { font: 500 12px var(--sans); color: var(--muted); text-decoration: none; white-space: nowrap; }
 .hub-link:hover { color: var(--text); }
+
+/* Contact line injected at the bottom of every page by vite.config.js */
+.site-contact { margin: 0; padding: 12px 16px 16px; text-align: center; font: 400 12px var(--sans); color: var(--muted); }
+.site-contact a { color: var(--muted); }
+.site-contact a:hover { color: var(--text); }
+/* Full-screen explainers (fixed .controls bar at the bottom): tuck it into the bar's bottom-right corner */
+body:has(.controls) .site-contact { position: fixed; right: 16px; bottom: 4px; z-index: 3; padding: 0; font-size: 11px; }
+body:has(.site-contact) .controls { padding-bottom: 26px; } /* room for the contact line under the sliders */

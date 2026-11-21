@@ -14,7 +14,16 @@ for (const d of readdirSync(root, { withFileTypes: true })) {
   }
 }
 
+// Contact line added to the bottom of every page (hub and explainers), so new pages get it too.
+const CONTACT_EMAIL = 'klaas_engels@hotmail.com';
+const contactFooter = {
+  name: 'contact-footer',
+  transformIndexHtml: (html) =>
+    html.replace('</body>', `  <p class="site-contact">Contact: <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>\n  </body>`),
+};
+
 export default defineConfig({
+  plugins: [contactFooter],
   base: './', // relative asset paths, so the build works under /crossfixx-explainer/ on GitHub Pages
   build: {
     chunkSizeWarningLimit: 800, // three.js is one ~550 kB chunk
