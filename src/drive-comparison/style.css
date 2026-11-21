@@ -1,0 +1,68 @@
+@import '../shared/base.css';
+
+body { min-height: 100%; }
+#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1; }
+
+.brand { display: flex; align-items: center; gap: 14px; padding: 18px 22px 0; }
+.brand h1 { margin: 0; font-size: 16px; font-weight: 600; }
+
+.intro { padding: 6px 22px 0; max-width: 900px; }
+.intro p { margin: 0; color: #d3d8e0; font-size: 14px; line-height: 1.55; }
+.intro b { color: var(--hot); font-weight: 600; }
+
+/* Control bar */
+.bar { position: sticky; top: 0; z-index: 3; margin: 12px 0 0; padding: 10px 22px 12px; background: rgba(10, 12, 16, 0.92); border-bottom: 1px solid var(--line); backdrop-filter: blur(8px); }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; }
+.seg button { border: 1px solid transparent; }
+.seg.small button { font-size: 11px; padding: 5px 8px; }
+.scn-text { margin: 8px 0 10px; font-size: 13px; line-height: 1.5; color: #d3d8e0; max-width: 1100px; min-height: 2.9em; }
+.ctls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.ctl { display: flex; flex-direction: column; gap: 4px; width: 170px; }
+.ctl span { font-size: 11.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+.ctl em { font: normal 500 11.5px var(--mono); color: var(--text); }
+.btn { background: var(--panel); }
+.power { min-width: 92px; border-color: rgba(95, 211, 255, 0.5); color: var(--cool); }
+.power.off { border-color: rgba(255, 107, 138, 0.7); color: var(--warn); background: rgba(255, 107, 138, 0.1); }
+input[type='range'] { width: 100%; accent-color: var(--cool); }
+
+/* Panels */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 14px 22px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 12px; min-width: 0; }
+.panel h2 { margin: 0 0 6px; font-size: 14px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.panel h2 small { font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cool); display: inline-block; align-self: center; }
+.dot.hot { background: var(--hot); }
+.panel[data-drive='piezo'] { border-color: rgba(255, 179, 92, 0.35); }
+.view { position: relative; height: 240px; border-radius: 8px; background: radial-gradient(ellipse at 50% 40%, #161b24, #0c0f14 75%); }
+.tag { position: absolute; right: 8px; top: 6px; font: 10px var(--mono); color: var(--muted); }
+.chart { display: block; width: 100%; height: 86px; margin-top: 8px; }
+
+.ro { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 8px 0 0; font: 11.5px var(--mono); }
+.ro dt { color: var(--muted); }
+.ro dd { margin: 0; text-align: right; }
+.ro .eq { display: block; color: var(--muted); font-size: 10.5px; }
+.yes, .cool { color: #7be3a0; }
+.no { color: var(--warn); }
+.hot { color: var(--warn); }
+.warm { color: var(--hot); }
+.state { color: var(--cool); }
+.s-falling, .s-backdriven, .s-slipping, .s-onendstop { color: var(--warn); }
+.s-selflocked, .s-locked { color: #7be3a0; }
+
+/* Notes */
+.notes { padding: 8px 22px 40px; }
+.notes h2 { font-size: 15px; margin: 10px 0 12px; }
+.notes .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; }
+.notes h3 { margin: 0 0 6px; font-size: 13px; color: var(--hot); font-weight: 600; }
+.notes p { margin: 0; font-size: 13px; line-height: 1.6; color: #c9cfd8; }
+.notes code { font: 12px var(--mono); color: var(--text); background: rgba(255, 255, 255, 0.05); padding: 1px 4px; border-radius: 4px; }
+.notes .src { margin-top: 18px; font-size: 12px; color: var(--muted); }
+.notes a { color: var(--cool); }
+
+@media (max-width: 860px) {
+  .grid, .notes .cols { grid-template-columns: 1fr; }
+  .brand, .intro, .bar, .grid, .notes { padding-left: 16px; padding-right: 16px; }
+  .bar { position: static; }
+  .ctl { width: calc(50% - 10px); }
+  .view { height: 210px; }
+}

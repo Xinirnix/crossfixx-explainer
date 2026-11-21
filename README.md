@@ -124,3 +124,22 @@ Files:
 - `src/vertical-stage/meta.js`, `thumb.jpg`: the landing-page card
 
 Keys: ↑/↓ move, H hold, M shuttle, P power, C cycle compensation, Space pause.
+
+### Friction drive vs screw, worm gear and magnetic drive (`drive-comparison/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/drive-comparison/)**
+
+![A piezo friction drive, a stepper on a lead screw, a DC motor on a worm gear and a magnetic linear motor, side by side, each with a position-error chart and readouts.](src/drive-comparison/thumb.jpg)
+
+Four drives get the same command, load and power switch. Three scenarios: reverse direction (the screw and worm lose their backlash, the piezo and linear motor don't), hold a load (the linear motor and stepper burn power, the piezo and a self-locking worm don't), and cut the power (the piezo, lead screw and 1-start worm hold; the linear motor, a ball screw and a 2-start worm don't). A probe slider reads the stray field above the payload.
+
+Files:
+
+- `drive-comparison/index.html`: the page, controls and the equations section
+- `src/drive-comparison/model.js`: all parameters and equations. Each number is tagged `[Xeryon]` (from xeryon.com), `[physics]` or `[assumed]` (an example value to replace with a datasheet value). Self-locking `μ > tan λ` with `λ = atan(lead/πd)`, reverse efficiency, holding power `I²R` with `F = k_f·I`, piezo holding force `μ·F_preload`, field decay `B₀·e^(−πz/τ)` for a magnet track and `1/r³` for a motor housing, and the backlash dead band.
+- `src/drive-comparison/scenes.js`: the four Three.js scenes (one renderer, one viewport per panel)
+- `src/drive-comparison/chart.js`: the scrolling position-error charts
+- `src/drive-comparison/main.js`: scenarios, controls, readouts, animation loop
+- `src/drive-comparison/meta.js`, `thumb.jpg`: the landing-page card
+
+Keys: 1/2/3 scenario, P power, Space pause.
