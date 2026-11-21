@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stick-slip vs Ultrasonic · Xeryon explainers</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M3 24 L23 8 L23 24 L29 8%27 fill=%27none%27 stroke=%27%23ff6b8a%27 stroke-width=%273%27/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <header class="brand">
+      <a class="hub-link" href="../" title="All explainers">← All</a>
+      <h1>Stick-slip, walking, ultrasonic: one rod, three drives</h1>
+    </header>
+
+    <aside class="captions-panel">
+      <div id="captions"></div>
+      <p class="keys">1 / 2 / 3 drive · Z zoom · Space pause · M listen · <a href="../crossfixx/">CrossFixx in 3D →</a></p>
+    </aside>
+
+    <nav class="toggles">
+      <div class="seg" data-seg="drive">
+        <button data-value="stickslip">Stick-slip</button><button data-value="walking">Walking</button><button data-value="ultrasonic">Ultrasonic</button>
+      </div>
+      <div class="row">
+        <button id="sound" class="btn" title="Play the audible part of the frame vibration">Listen</button>
+        <button id="zoom" class="btn" title="Close-up of the contact, where the µm motion is visible">Zoom contact</button>
+        <button id="pause" class="btn">Pause</button>
+        <button id="reset" class="btn">Reset view</button>
+      </div>
+    </nav>
+
+    <section class="plots">
+      <h2>Drive waveform <span class="fine">two cycles, real time</span></h2>
+      <canvas id="wave"></canvas>
+      <div class="legend"><span class="hot">pad / leg 1 / tip</span><span class="cool">leg 2</span><span class="rod">rod</span><span class="warn">rod slipping</span></div>
+      <h2>Frame vibration spectrum <span class="fine">dB re 1 pm, per harmonic</span></h2>
+      <canvas id="spectrum"></canvas>
+      <table class="cmp">
+        <thead><tr><th></th><th>speed</th><th>audible</th><th>wear</th></tr></thead>
+        <tbody id="cmp"></tbody>
+      </table>
+      <p class="fine">Same rod, each drive at its own slider settings. Click a row to switch. Audible: A-weighted frame surface velocity, 20 Hz–20 kHz only. Wear: friction work per mm of travel (Archard wear scales with it). Frame, rod and contact values are illustrative; see <code>src/piezo-drives/model.js</code>.</p>
+    </section>
+
+    <section class="readout">
+      <dl>
+        <dt>Drive</dt><dd id="r-drive" class="strong"></dd>
+        <dt>Display</dt><dd id="r-slow"></dd>
+        <dt>Step</dt><dd id="r-step"></dd>
+        <dt>Rod speed</dt><dd id="r-speed" class="strong"></dd>
+        <dt>Audible</dt><dd id="r-db"></dd>
+        <dt>Frame shake</dt><dd id="r-frame"></dd>
+        <dt>Sliding loss</dt><dd id="r-wear"></dd>
+        <dt>Holds (off)</dt><dd id="r-hold"></dd>
+      </dl>
+    </section>
+
+    <footer class="controls">
+      <label class="ctl" id="freq-row">
+        <span class="name">Drive frequency <em id="freq-val"></em></span>
+        <span class="track-wrap" id="freq-track">
+          <span class="band audible-band"></span>
+          <input id="freq" type="range" min="0" max="1000" step="1" />
+        </span>
+        <span class="hint">20 Hz – 300 kHz · red band: audible · ticks: frame, stack, CrossFixx resonances</span>
+      </label>
+      <label class="ctl">
+        <span class="name">Amplitude <em id="amp-val"></em></span>
+        <input id="amp" type="range" min="0" max="1" step="0.01" />
+        <span class="hint">1 = 1 µm peak at the contact</span>
+      </label>
+      <label class="ctl">
+        <span class="name"><span id="shape-name">Shape</span> <em id="shape-val"></em></span>
+        <input id="shape" type="range" />
+        <span class="hint" id="shape-hint"></span>
+      </label>
+      <label class="ctl">
+        <span class="name">Load on rod <em id="load-val"></em></span>
+        <input id="load" type="range" min="0" max="2" step="0.05" />
+        <span class="hint">pushes −x · drive off holds up to μ·N</span>
+      </label>
+      <label class="ctl">
+        <span class="name">Slow-motion <em id="rate-val"></em></span>
+        <input id="rate" type="range" min="0" max="1000" step="1" />
+        <span class="hint">displayed cycles per second</span>
+      </label>
+    </footer>
+
+    <script type="module" src="/src/piezo-drives/main.js"></script>
+  </body>
+</html>
