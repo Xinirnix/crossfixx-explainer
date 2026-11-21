@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hysteresis and creep · Xeryon explainers</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M4 27 C12 26 18 16 28 5 M4 27 C14 22 20 12 28 5%27 fill=%27none%27 stroke=%27%23ffb35c%27 stroke-width=%272.6%27/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="hub-link" href="../">← All</a>
+      <h1>Why an open-loop piezo misses its target</h1>
+      <span class="badge">hysteresis · creep</span>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p>A piezo stack grows when you put a voltage on it, but not along a straight line. Its position depends on whether it got to that voltage from above or from below. That is <em>hysteresis</em>, typically 10 to 15 % of the commanded motion. And after the voltage stops changing, the stack keeps moving a little, more slowly over time. That is <em>creep</em>, about 1 % of the last move for every tenfold increase in elapsed time.</p>
+        <p>Both come from the ceramic itself (PI's tutorial names "crystalline polarization effects and molecular friction"), and neither shows up in the voltage. So if you position open loop, setting a voltage from a straight-line calibration, you can be off by several percent of the stroke. A position sensor in a <a href="../closed-loop/">closed loop</a> removes both, because it measures where the stage really is.</p>
+      </section>
+
+      <section class="lab">
+        <div class="charts">
+          <div class="card view-card">
+            <div class="card-h"><h2>The stack</h2><span class="legend"><i class="k-act"></i>actual top <i class="k-lin"></i>straight-line calibration · length change drawn ×400</span></div>
+            <div id="view"></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h2>Position vs voltage</h2><span class="legend"><i class="k-act"></i>path so far <i class="k-lin dash"></i>straight line <i class="k-err"></i>error now</span></div>
+            <canvas id="c-loop"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-h"><h2>Drift after the last change</h2><span class="legend"><i class="k-act"></i>recorded <i class="k-pred"></i>if you hold it <i class="k-ref"></i>0.1 s value <span class="cl-only"><i class="k-lin"></i> voltage (right axis)</span></span></div>
+            <canvas id="c-creep"></canvas>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <div class="seg">
+            <button id="b-open" data-act="open" class="on">Open loop</button>
+            <button id="b-closed" data-act="closed">Closed loop</button>
+          </div>
+          <div class="ctl big">
+            <span class="name" id="cmd-name">Voltage</span><em id="cmd-val">0.0 V</em>
+            <input id="cmd" type="range" min="0" max="1000" value="0" step="1" />
+          </div>
+          <h3>Try</h3>
+          <div class="btns">
+            <button data-act="sweep-full" data-sweep data-lo="0" data-hi="1">Sweep full <span class="unit" data-ol="0–100 V" data-cl="0–30 µm"></span></button>
+            <button data-act="sweep-half" data-sweep data-lo="0" data-hi="0.5">Sweep half <span class="unit" data-ol="0–50 V" data-cl="0–15 µm"></span></button>
+            <button data-act="sweep-mid" data-sweep data-lo="0.35" data-hi="0.65">Small loop <span class="unit" data-ol="35–65 V" data-cl="10.5–19.5 µm"></span></button>
+            <button data-act="step-up">Step 0 → <span class="unit" data-ol="60 V" data-cl="18 µm"></span>, hold</button>
+            <button data-act="step-down">Step down to <span class="unit" data-ol="30 V" data-cl="9 µm"></span></button>
+            <button data-act="reset">Reset</button>
+          </div>
+          <div class="ctl">
+            <span class="name">Time speed</span>
+            <select id="speed">
+              <option value="1">real time</option>
+              <option value="10" selected>10× faster</option>
+              <option value="100">100× faster</option>
+              <option value="1000">1000× faster</option>
+            </select>
+          </div>
+          <button id="b-pause" data-act="pause">Pause</button>
+
+          <dl id="readout"></dl>
+          <p id="caption"></p>
+
+          <h3>Material</h3>
+          <div class="ctl">
+            <span class="name">Hysteresis, full loop</span><em id="hyst-val"></em>
+            <input id="hyst" type="range" min="0" max="20" value="12" step="1" />
+          </div>
+          <div class="ctl">
+            <span class="name">Creep factor γ</span><em id="gamma-val"></em>
+            <input id="gamma" type="range" min="0" max="30" value="15" step="1" />
+          </div>
+          <p class="fine">PI gives 10–15 % hysteresis and γ ≈ 0.01–0.02. Changing hysteresis restarts the stack from 0 V.</p>
+          <p class="fine keys">Keys: O open loop, C closed loop, 1/2/3 sweeps, S step, R reset, Space pause.</p>
+        </aside>
+      </section>
+
+      <section class="notes">
+        <div>
+          <h2>From PI's tutorial</h2>
+          <ul>
+            <li>Hysteresis "is typically on the order of 10 to 15 % of the commanded motion". The displacement "depends on whether it was previously operated at a higher or a lower voltage".</li>
+            <li>The tutorial shows the loops "for various peak voltages": lower peak voltage, smaller loop.</li>
+            <li>Creep after a voltage change: <code>ΔL(t) ≈ ΔL<sub>0.1</sub> · (1 + γ · lg(t / 0.1 s))</code>, where ΔL<sub>0.1</sub> is the displacement 0.1 s after the change is complete and γ, the creep factor, is "on the order of 0.01 to 0.02". That is about 1 % of the last move per time decade, and "a few %" after a few hours.</li>
+            <li>"Creep only occurs with open loop PZTs", and closed-loop actuators eliminate hysteresis.</li>
+            <li>For periodic motion neither hurts repeatability: the stack comes back to the same point on the same loop.</li>
+          </ul>
+          <p class="fine"><a href="https://www.pi-usa.us/en/products/piezo-flexure-nanopositioners/piezo-motion-control-tutorial/tutorial-4-20">PI: Displacement of Piezo Actuators (tutorial)</a></p>
+        </div>
+        <div>
+          <h2>Our model (editable in <code>src/hysteresis-creep/model.js</code>)</h2>
+          <ul>
+            <li><b>Assumed:</b> a 0–100 V stack with 30 µm nominal stroke and a 36 mm body. Replace these with your actuator's datasheet values. PI's own example is a 50 µm actuator.</li>
+            <li><b>Assumed shape:</b> PI gives the loop's width but not its exact shape. We use a Prandtl–Ishlinskii model: a straight line plus 24 "play" (backlash) elements of different widths. It gives nested loops that grow with the peak voltage, as in PI's figure. Its weights are scaled so the full loop is as wide as the hysteresis slider says.</li>
+            <li><b>Assumed:</b> creep applies the PI formula to every voltage change and adds them up. So a slow drag creeps too, and a step back down creeps back down.</li>
+            <li><b>Assumed:</b> the closed loop is an ideal sensor plus an integrator that moves the voltage until the position matches. A real controller has limited bandwidth and sensor noise (see the <a href="../closed-loop/">closed-loop page</a>).</li>
+            <li>Not modelled: temperature, ageing (PI calls it negligible for actuators) and the dynamic response of the stack.</li>
+          </ul>
+          <p class="fine">Xeryon's CrossFixx motors are resonant friction drives, not stacks positioned by their static length, and their stages run closed loop on an encoder. This page explains why closed-loop positioning is the norm for anything piezo.</p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/hysteresis-creep/main.js"></script>
+  </body>
+</html>
