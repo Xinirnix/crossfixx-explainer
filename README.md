@@ -69,3 +69,24 @@ Files:
 The **Nodal mount** toggle zooms to the plate, marks the centre-hole node shared by both modes, traces how every other point moves, and shows the front electrode pattern (A and B in phase → expansion mode, 180° → bending mode, 90° → both, the ellipse).
 
 Keys: L linear, R rotary, X exploded, N nodal mount, S stick-slip, Space pause, 1/2/3 phase −90/0/+90.
+
+### Stick-slip vs walking vs ultrasonic (`piezo-drives/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/piezo-drives/)**
+
+One rod in two bearings, pressed onto the drive by a preload roller, driven three ways: a stick-slip shear stack (sawtooth), two walking legs (quasi-static loops, half a cycle apart), and a CrossFixx-style ultrasonic tip (two modes, ~90° apart, at resonance). Every number on the page comes from one friction model solved in the time domain: `m·dv/dt = Σ μ·N_i(t)·sat((v_i − v)/v_ε) − F_load`. From its steady-state cycle the page derives rod speed, the force fed back into the frame (its harmonics, run through three frame modes, give the frame vibration and an A-weighted audible level) and the friction work per mm of travel (what wears the contact). Sweep the drive frequency to see stick-slip stall when the flyback is too slow, ring when it nears the stack resonance, and stay in the audible band; the ultrasonic drive only works near its resonance and everything it emits is above 20 kHz. **Listen** plays the audible part of the simulated frame vibration.
+
+Files:
+
+- `piezo-drives/index.html`: the page and HUD markup
+- `src/piezo-drives/model.js`: the friction model, the three drives' contact waveforms, frame spectrum, A-weighting, wear. All constants (rod mass, preload, μ, stack resonance, frame modes) are in `P` at the top; the ultrasonic tip reuses `src/crossfixx/physics.js`.
+- `src/piezo-drives/scene.js`: rod, bearings, preload roller, frame, shear stack, walking legs, resonator and tip
+- `src/piezo-drives/plots.js`: drive waveform and frame spectrum charts
+- `src/piezo-drives/captions.js`: the sentences in the left panel, including the ones that react to the model
+- `src/piezo-drives/sound.js`: Web Audio playback of the audible harmonics
+- `src/piezo-drives/main.js`: state, sliders, animation loop, comparison table
+- `src/piezo-drives/meta.js`, `thumb.jpg`: the landing-page card
+
+Keys: 1/2/3 drive, Z zoom to the contact, M listen, Space pause.
+
+Source: [Xeryon, Ultrasonic piezo motors](https://xeryon.com/technology/ultrasonic-piezo-motors-the-worlds-smallest-high-performance-motion-technology/). Rod, contact and frame values are illustrative orders of magnitude, not Xeryon data; Xeryon gives ~100 kHz as typical; this page reuses the CrossFixx page's 166 kHz example.
