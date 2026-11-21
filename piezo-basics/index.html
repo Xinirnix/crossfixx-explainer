@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Piezo Effect Basics · Xeryon explainers</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 4v24M9 11l7-7 7 7%27 fill=%27none%27 stroke=%27%235fd3ff%27 stroke-width=%273%27/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <header class="brand">
+      <a class="hub-link" href="../" title="All explainers">← All</a>
+      <h1>The piezo effect: poling, d33 and d31</h1>
+      <span id="status-badge" class="badge">unpoled</span>
+    </header>
+
+    <aside class="captions-panel">
+      <div id="captions"></div>
+      <p class="keys">P pole · U unpole · A AC/DC · 0 zero volts · Space pause</p>
+    </aside>
+
+    <nav class="toggles">
+      <div class="seg" data-seg="poling" aria-label="Poling">
+        <button data-value="unpoled" title="Heat above the Curie point and cool without a field">Unpoled</button><button data-value="poled" title="Apply a strong DC field to line up the domains">Pole it</button>
+      </div>
+      <div class="row">
+        <button id="pause" class="btn">Pause</button>
+        <button id="reset" class="btn">Reset view</button>
+      </div>
+    </nav>
+
+    <section class="readout">
+      <h2>d33 vs d31: what the voltage does</h2>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-name">Δt (d33, along 3)</span><span class="bar-track"><span id="bar-t" class="bar t"></span></span><span id="r-dt" class="bar-val"></span></div>
+        <div class="bar-row"><span class="bar-name">ΔL (d31, along 1)</span><span class="bar-track"><span id="bar-l" class="bar l"></span></span><span id="r-dl" class="bar-val"></span></div>
+      </div>
+      <canvas id="chart"></canvas>
+      <div class="bar-key"><span class="k s3">S3 thickness strain</span><span class="k s1">S1 width strain</span><span class="k ec">coercive field</span></div>
+      <dl>
+        <dt>Field E3</dt><dd id="r-e"></dd>
+        <dt>Net polarization</dt><dd id="r-p" class="strong"></dd>
+        <dt>Strain S3 / S1</dt><dd id="r-s"></dd>
+        <dt>Stack, 100 × 0.1 mm</dt><dd id="r-stack"></dd>
+      </dl>
+      <h2 class="sub">One unit cell (schematic)</h2>
+      <canvas id="cell"></canvas>
+      <p class="fine">Axes, d-coefficient indices, poling, the tetragonal cell below the Curie point, depoling against the field, and the 3 kV/mm recommended (4 kV/mm acceptable) limit are from <a href="https://www.ctscorp.com/Resources/Blog/Piezo-Basics">CTS, Piezoelectricity Basics</a>. Assumed (CTS gives no numbers): <span id="coeffs"></span>, coercive field ≈ 1 kV/mm with a ±25 % spread per grain. The model is linear: real PZT adds 13–20 % hysteresis and creep (CTS), which is why stages run <a href="../closed-loop/">closed loop</a>. Constants are in <code>physics.js</code>.</p>
+    </section>
+
+    <footer class="controls">
+      <label class="ctl">
+        <span class="name">Voltage <em id="volt-val"></em></span>
+        <input id="volt" type="range" min="-1500" max="4000" step="50" />
+        <span class="presets">
+          <button data-volt="-1200">−1.2 kV</button><button data-volt="0">0</button><button data-volt="600">600 V</button><button data-volt="1500">1.5 kV</button><button data-volt="3000">3 kV</button>
+        </span>
+      </label>
+      <div class="ctl">
+        <span class="name">Drive</span>
+        <div class="seg" data-seg="drive">
+          <button data-value="dc">DC</button><button data-value="ac">AC (slowed)</button>
+        </div>
+        <span class="hint">AC: the slider sets the peak voltage</span>
+      </div>
+      <label class="ctl">
+        <span class="name">Plate width L <em id="width-val"></em></span>
+        <input id="width" type="range" min="1" max="10" step="0.5" />
+        <span class="hint">thickness t stays 1 mm; deformation drawn ×150</span>
+      </label>
+    </footer>
+
+    <script type="module" src="/src/piezo-basics/main.js"></script>
+  </body>
+</html>
