@@ -107,6 +107,29 @@ Files:
 
 Try the model from the command line: `node -e "import('./src/closed-loop/sim.js').then(m => console.log(m.simulate({ PROP: 2000, PRO2: 2000 }).summary))"`
 
+### Hysteresis and creep in open-loop piezo positioning (`hysteresis-creep/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/hysteresis-creep/)**
+
+![Position vs voltage of a piezo stack: the rising path runs below the straight-line calibration, the falling path above it.](src/hysteresis-creep/thumb.jpg)
+
+Why setting a voltage doesn't set a position. Drag the voltage slider (or run a sweep) and the stack traces a hysteresis loop around the straight-line calibration, about 12 % of the stroke wide; smaller sweeps give smaller loops inside it. Step the voltage and hold it, and the stack keeps creeping by about 1.5 % of the step per tenfold increase in time (speed time up to 1000× to see hours). Switch to **Closed loop** and the slider sets a position instead: a sensor holds it on the straight line, and the hysteresis and creep show up in the voltage the controller has to apply. Links to the [closed-loop page](https://xinirnix.github.io/crossfixx-explainer/closed-loop/).
+
+Files:
+
+- `hysteresis-creep/index.html`: the page, controls, and notes on what comes from PI's tutorial vs. our model
+- `src/hysteresis-creep/model.js`: the model (no DOM, runs in Node). Hysteresis is a Prandtl–Ishlinskii model (straight line plus 24 play operators, scaled to the chosen loop width); creep is PI's `ΔL(t) = ΔL₀.₁·(1 + γ·lg(t/0.1 s))` applied to every voltage change and summed; closed loop is an ideal sensor plus an integrator. Each constant is tagged `[PI]`, `[assumed]` or `[model]`.
+- `src/hysteresis-creep/scene.js`: the stack, top cap, pointer and scale (length change drawn ×400)
+- `src/hysteresis-creep/charts.js`: the position–voltage loop and the drift chart (log time axis, 0.1 s to 2.8 h)
+- `src/hysteresis-creep/main.js`: state, sweeps, steps, closed loop, readouts, captions, keyboard
+- `src/hysteresis-creep/style.css`, `meta.js`, `thumb.jpg`
+
+From PI: hysteresis 10–15 % of the commanded motion, creep factor γ ≈ 0.01–0.02, creep only in open loop. Assumed: 0–100 V drive, 30 µm stroke, 36 mm stack, the loop shape. Source: [PI, Displacement of Piezo Actuators](https://www.pi-usa.us/en/products/piezo-flexure-nanopositioners/piezo-motion-control-tutorial/tutorial-4-20).
+
+Try the model from the command line: `node -e "import('./src/hysteresis-creep/model.js').then(m => console.log(m.loopWidth()))"`
+
+Keys: O open loop, C closed loop, 1/2/3 sweeps, S step, R reset, Space pause.
+
 ### Mass compensation on a vertical stage (`vertical-stage/`)
 
 **[Open it](https://xinirnix.github.io/crossfixx-explainer/vertical-stage/)**
