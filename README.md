@@ -107,6 +107,28 @@ Files:
 
 Try the model from the command line: `node -e "import('./src/closed-loop/sim.js').then(m => console.log(m.simulate({ PROP: 2000, PRO2: 2000 }).summary))"`
 
+### Optical encoder interpolation (`encoder-interpolation/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/encoder-interpolation/)**
+
+![The scale slides under the read head; the sin and cos signals trace a Lissajous figure that a misaligned head warps into an ellipse; the position error repeats every 20 µm period.](src/encoder-interpolation/thumb.jpg)
+
+The read head turns a 20 µm grating into a sine and a cosine. Plotted against each other they trace a circle once per period, and the angle around it, x = φ/2π · P, splits the period into thousands of counts (20 µm ÷ 4096 ≈ 4.9 nm). Sliders for offset, gain mismatch, phase error, common amplitude and noise warp the circle into a shifted, squashed or tilted ellipse, and the error plot shows the resulting cyclic error: once per period from offset, twice per period from gain and phase. **Correct the ellipse** maps the figure back onto a circle (Heydemann-style), and the error drops to one count. The readout compares the cyclic error with the count size, because resolution is not accuracy. Links to the closed-loop page, where PTOL and the gains are in these counts.
+
+Files:
+
+- `encoder-interpolation/index.html`: the page, the "why once or twice per period" cards and the source notes
+- `src/encoder-interpolation/model.js`: the model (no DOM, runs in Node). Signals `cos = A(1+g/2)·cos θ + oₓ`, `sin = A(1−g/2)·sin(θ+δ) + o_y`, read angle `atan2`, counter, correction, harmonics and first-order predictions. Every value is tagged `[SmarAct]`, `[Xeryon]`, `[textbook]` or `[assumed]`.
+- `src/encoder-interpolation/charts.js`: scale and read head, sin/cos plot, Lissajous figure (distortion drawn ×10 by default, switchable), cyclic error plot
+- `src/encoder-interpolation/main.js`: controls, presets, readouts, animation, dragging, keyboard
+- `src/encoder-interpolation/style.css`, `meta.js`, `thumb.jpg`
+
+Keys: 1–6 presets, C correction, Space pause. Drag the scale or the Lissajous point to move the head.
+
+Try the model from the command line: `node -e "import('./src/encoder-interpolation/model.js').then(m => console.log(m.analyse({ offX: 0.01 }).ppNm))"` (≈ 64 nm peak to peak for a 1 % offset on 20 µm).
+
+Source: [SmarAct, Operating principles of optical encoders](https://www.smaract.com/en/metrology/technologies/operating-principles-of-optical-encoders) for the sin/cos quadrature signals, the Lissajous circle, one turn per period and the 20 µm METIRIO pitch. SmarAct doesn't describe the error terms; those are textbook relations. The 4 and 40 µm periods, interpolation factors and all error and noise values are assumed example values.
+
 ### Hysteresis and creep in open-loop piezo positioning (`hysteresis-creep/`)
 
 **[Open it](https://xinirnix.github.io/crossfixx-explainer/hysteresis-creep/)**
