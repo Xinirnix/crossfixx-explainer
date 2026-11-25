@@ -1,12 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import './style.css';
 import {
   F0_KHZ, Q, EXAGGERATION, STICKSLIP_HZ,
   resonance, tipAmplitudeUm, tipPosition, transferFactor, stepPerCycleUm, stickSlip,
 } from './physics.js';
-import { buildScene, EXPLODE, ROTOR_R, PLATE, PLATE_CY } from './scene.js';
+import { buildScene, EXPLODE, ROTOR_R, PLATE, PLATE_CY, FLOOR_Y } from './scene.js';
 import { createInset } from './inset.js';
 import { captions } from './captions.js';
 
@@ -56,6 +60,17 @@ controls.update();
 
 const S = buildScene(renderer);
 const { scene, groups: G } = S;
+
+// Post: multisampled HDR render, a gentle bloom on the hot spots (sparks, live electrodes,
+// specular glints), then tone mapping + sRGB in the output pass.
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
+composer.setPixelRatio(renderer.getPixelRatio());
+composer.setSize(window.innerWidth, window.innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.25, 0.4, 1.0);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+let floorT = state.driven === 'rotary' ? 1 : 0; // 0 linear .. 1 rotary floor height
 
 // ---------- HUD ----------
 const $ = (id) => document.getElementById(id);
@@ -280,6 +295,8 @@ function tick() {
   G.linDriven.position.y = e * EXPLODE.driven;
   G.rotStrip.position.y = -ROTOR_R + e * EXPLODE.driven;
   G.rotDriven.position.y = -ROTOR_R + e * EXPLODE.driven;
+  floorT += ((state.driven === 'rotary' ? 1 : 0) - floorT) * Math.min(1, dt * 6);
+  S.floor.position.y = FLOOR_Y.linear + (FLOOR_Y.rotary - FLOOR_Y.linear) * floorT + e * EXPLODE.driven;
   G.linear.visible = state.driven === 'linear';
   G.rotary.visible = state.driven === 'rotary';
 
@@ -436,7 +453,7 @@ function tick() {
 
   controls.update();
   S.ghost.material.resolution.set(window.innerWidth, window.innerHeight);
-  renderer.render(scene, camera);
+  composer.render();
   labelRenderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
@@ -445,6 +462,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
   labelRenderer.setSize(window.innerWidth, window.innerHeight);
 });
 
