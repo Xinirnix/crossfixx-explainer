@@ -47,6 +47,29 @@ Use relative links between pages (`../`, `../crossfixx/`), never `/...`, because
 
 ## Explainers
 
+### Piezo effect basics: poling, d33 and d31 (`piezo-basics/`)
+
+**[Open it](https://xinirnix.github.io/crossfixx-explainer/piezo-basics/)**
+
+![A translucent PZT plate full of domain arrows, poled up, with +3000 V on the top electrode: thicker along the poling axis, narrower sideways.](src/piezo-basics/thumb.jpg)
+
+The root concept for the other pages. A PZT plate with electrodes on top and bottom, drawn as 432 grains, each with its domain along one of its own six tetragonal axes. Unpoled, they cancel and a voltage does nothing. **Pole it** turns every grain to the axis nearest the field (about 83 % of a single crystal, because the grains are randomly oriented). Then the voltage slider makes the plate thicker by `Δt = d33·V` and narrower by `ΔL = d31·V·L/t`. Δt doesn't depend on thickness (which is why stacks exist), while ΔL grows with L/t (which is why plates and benders use d31). Drive it past the coercive field against the poling and the domains flip, tracing the butterfly in the strain chart. AC mode shows the plate breathing, linking to the CrossFixx page.
+
+Files:
+
+- `piezo-basics/index.html`: the page and HUD markup
+- `src/piezo-basics/physics.js`: the model, no DOM (runs in Node). Strains `S3 = d33·E·p`, `S1 = d31·E·p` scaled by net polarization `p`; grain/domain model with per-grain coercive field; stack readout. Every constant is tagged `[CTS]` (from the [CTS Piezoelectricity Basics](https://www.ctscorp.com/Resources/Blog/Piezo-Basics) page), `[physics]` or `[assumed]`. Assumed, because CTS gives no numbers: d33 = 400 pm/V, d31 = −180 pm/V, coercive field 1 kV/mm ±25 %, 1 mm plate, 100 × 0.1 mm stack. From CTS: axis and index conventions, poling, tetragonal below the Curie point, depoling against the field, 3 kV/mm recommended and 4 kV/mm acceptable.
+- `src/piezo-basics/scene.js`: plate, electrodes, undeformed outline, instanced domain arrows, axis labels
+- `src/piezo-basics/chart.js`: strain vs field with the coercive bands and the path the plate took
+- `src/piezo-basics/cell.js`: schematic perovskite unit cell (Pb, Zr/Ti, O) that stretches with the plate
+- `src/piezo-basics/captions.js`: the sentences in the left panel, with links to the CrossFixx, stick-slip and closed-loop pages
+- `src/piezo-basics/main.js`: state, domain animation, controls, keyboard
+- `src/piezo-basics/style.css`, `meta.js`, `thumb.jpg`: styling and the landing-page card (order 5, so it comes first)
+
+The model is linear: real PZT adds 13–20 % hysteresis and creep (CTS), which this page leaves out.
+
+Keys: P pole, U unpole, A AC/DC, 0 zero volts, Space pause.
+
 ### CrossFixx standing-wave motor (`crossfixx/`)
 
 **[Open it](https://xinirnix.github.io/crossfixx-explainer/crossfixx/)**
