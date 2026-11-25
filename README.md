@@ -59,7 +59,10 @@ Files:
 
 - `crossfixx/index.html`: the page and HUD markup
 - `src/crossfixx/physics.js`: tip equation `x = A·sin(ωt)`, `y = A·sin(ωt + φ)`, resonance, net step per cycle, stick-slip contrast. Constants (166 kHz example resonance from Xeryon's 80–180 kHz range, Q, 1 µm, 1000× exaggeration) are at the top.
-- `src/crossfixx/scene.js`: primitive geometry (piezo plate, electrodes, tip, spring, housing, strip, rod, rotor), labels, ghost ellipse, sparks
+- `src/crossfixx/scene.js`: loads the Blender parts into named groups, material presets (`MATERIALS`), studio lighting and environment map, labels, ghost ellipse, sparks
+- `src/crossfixx/assets/crossfixx-parts.glb`: the machined parts (housing, spring, yoke, piezo plate, electrodes, tip, strip, rod, bearings, rotor, pedestal), with baked ambient occlusion
+- `src/crossfixx/assets/studio.hdr`: the studio environment map used for reflections
+- `blender/crossfixx/build_parts.py`, `build_env.py`: the Blender scripts that make those two files; `crossfixx-parts.blend` is the same scene saved for editing by hand
 - `src/crossfixx/main.js`: state, animation loop, controls, keyboard
 - `src/crossfixx/captions.js`: the sentences in the left panel
 - `src/crossfixx/inset.js`: the real-scale tip path chart
@@ -69,6 +72,18 @@ Files:
 The **Nodal mount** toggle zooms to the plate, marks the centre-hole node shared by both modes, traces how every other point moves, and shows the front electrode pattern (A and B in phase → expansion mode, 180° → bending mode, 90° → both, the ellipse).
 
 Keys: L linear, R rotary, X exploded, N nodal mount, S stick-slip, Space pause, 1/2/3 phase −90/0/+90.
+
+#### Editing the 3D parts
+
+The parts are modelled by script in Blender, so they can be regenerated after any change. Nothing in the GLB is animated: each part sits in a group (`G_plateDeform`, `G_rodSlide`, `G_rotorBody`, ...) that `main.js` moves every frame from the tip equation, exactly as before.
+
+```
+pip install bpy                                  # or use a Blender install: blender -b -P <script>
+python blender/crossfixx/build_parts.py          # writes the GLB and the .blend (~1 min with AO; --no-ao for a quick pass)
+python blender/crossfixx/build_env.py            # writes studio.hdr
+```
+
+Dimensions in `build_parts.py` mirror the constants at the top of `scene.js` (`PLATE`, `TIP_R`, `ROD_R`, `ROTOR_R`, ...); change both together. Material names in Blender are keys into `MATERIALS` in `scene.js`, which sets the final look, so colours and roughness can be tuned in JavaScript without re-exporting. Hand edits to the `.blend` are fine too: export with *glTF Binary*, *+Y Up* and *Apply Modifiers*, keep the `G_<group>` empties and the `electrode_A_*` / `electrode_B_*` names.
 
 ### Stick-slip vs walking vs ultrasonic (`piezo-drives/`)
 

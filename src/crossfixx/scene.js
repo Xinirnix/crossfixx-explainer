@@ -1,7 +1,14 @@
-// Scene construction: primitive geometry only. Units are millimetres.
+// Scene construction. Units are millimetres.
+// The machined parts are modelled in Blender (blender/crossfixx/build_parts.py) and loaded
+// from assets/crossfixx-parts.glb into the named groups below; the overlays (tip path, labels,
+// nodal probes, sparks, arrows) are built here. The motion is set live by main.js.
 // The strip surface (contact plane) is y = 0; the tip touches it at the origin.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import partsUrl from './assets/crossfixx-parts.glb?url';
+import studioHdrUrl from './assets/studio.hdr?url';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
@@ -15,6 +22,10 @@ export const PLATE_CY = TIP_R + TIP_H + PLATE / 2; // plate centre height
 export const ROD_R = 3.5;
 export const STRIP_T = 0.8;
 export const ROTOR_R = 20;        // outer radius of the ceramic band on the rotor
+// These dimensions are mirrored in blender/crossfixx/build_parts.py; change both together.
+
+// Floor height under each driven part (top of the floor = underside of its base).
+export const FLOOR_Y = { linear: -12.6, rotary: -46 };
 
 // Exploded offsets along Y, per part group.
 export const EXPLODE = {
@@ -25,33 +36,35 @@ export const EXPLODE = {
   driven: -12,
 };
 
-const mat = {
-  piezo: new THREE.MeshPhysicalMaterial({
-    color: 0x7f7a72, roughness: 0.55, metalness: 0.0, clearcoat: 0.35, clearcoatRoughness: 0.4,
-  }),
-  ceramic: new THREE.MeshPhysicalMaterial({
-    color: 0xf3f0ea, roughness: 0.32, metalness: 0.0, clearcoat: 0.7, clearcoatRoughness: 0.15, sheen: 0.2,
-  }),
-  strip: new THREE.MeshPhysicalMaterial({
-    color: 0xe9ecef, roughness: 0.28, metalness: 0.0, clearcoat: 0.8, clearcoatRoughness: 0.1,
-  }),
-  steel: new THREE.MeshPhysicalMaterial({
-    color: 0xb8bec6, roughness: 0.22, metalness: 1.0, clearcoat: 0.2,
-  }),
-  darkSteel: new THREE.MeshPhysicalMaterial({
-    color: 0x3a3f47, roughness: 0.35, metalness: 0.9,
-  }),
-  frame: new THREE.MeshPhysicalMaterial({
-    color: 0x2b3340, roughness: 0.45, metalness: 0.6, transparent: true, opacity: 0.55,
-    side: THREE.DoubleSide, depthWrite: false,
-  }),
-  mark: new THREE.MeshPhysicalMaterial({ color: 0x14171c, roughness: 0.6, metalness: 0.3 }),
+// Material presets, keyed by the material names used in blender/crossfixx/build_parts.py.
+// Each loaded mesh gets a clone of its preset; only the baked AO map is kept from the GLB.
+export const MATERIALS = {
+  piezo: { color: 0x6c665d, roughness: 0.62, metalness: 0.0, clearcoat: 0.25, clearcoatRoughness: 0.5 },
+  electrode: { color: 0xd6d8dc, roughness: 0.34, metalness: 1.0, emissive: 0x000000, emissiveIntensity: 1 },
+  solder: { color: 0xd8dce2, roughness: 0.28, metalness: 1.0 },
+  ceramic: { color: 0xf5f2ec, roughness: 0.3, metalness: 0.0, clearcoat: 0.7, clearcoatRoughness: 0.12, sheen: 0.3, sheenColor: 0xffffff },
+  strip: { color: 0xeae7e0, roughness: 0.4, metalness: 0.0, clearcoat: 0.35, clearcoatRoughness: 0.25 },
+  steel: { color: 0xc8cdd3, roughness: 0.22, metalness: 1.0 },
+  blackOxide: { color: 0x363a42, roughness: 0.36, metalness: 0.85 },
+  anodized: { color: 0x4a5466, roughness: 0.4, metalness: 0.7, clearcoat: 0.35, clearcoatRoughness: 0.3 },
+  cut: { color: 0xc9ced6, roughness: 0.34, metalness: 0.6 },
+  aluminium: { color: 0xb3b9c2, roughness: 0.5, metalness: 1.0 },
+  bronze: { color: 0xc09a5e, roughness: 0.3, metalness: 1.0 },
+  mark: { color: 0x14171c, roughness: 0.6, metalness: 0.3 },
+  accent: { color: 0xffb35c, roughness: 0.4, metalness: 0.0, emissive: 0xff8a3d, emissiveIntensity: 0.6 },
+  rubber: { color: 0x15161a, roughness: 0.85, metalness: 0.0 },
 };
 
-function mesh(geo, material, { cast = true, receive = true } = {}) {
-  const m = new THREE.Mesh(geo, material);
-  m.castShadow = cast;
-  m.receiveShadow = receive;
+function presetMaterial(loaded) {
+  const key = (loaded.name || '').split('.')[0];
+  const preset = MATERIALS[key];
+  if (!preset) return loaded;
+  const m = new THREE.MeshPhysicalMaterial(preset);
+  m.name = key;
+  if (loaded.aoMap) {
+    m.aoMap = loaded.aoMap;
+    m.aoMapIntensity = 1;
+  }
   return m;
 }
 
@@ -65,35 +78,48 @@ function label(text, cls = '') {
 export function buildScene(renderer) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a0c10);
-  scene.fog = new THREE.Fog(0x0a0c10, 110, 220);
+  scene.fog = new THREE.Fog(0x0a0c10, 120, 240);
 
+  // Reflections: a studio HDR rendered in Blender (blender/crossfixx/build_env.py).
+  // RoomEnvironment stands in until it has loaded.
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.55;
+  scene.environmentIntensity = 1.0;
+  new RGBELoader().load(studioHdrUrl, (hdr) => {
+    hdr.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = pmrem.fromEquirectangular(hdr).texture;
+    hdr.dispose();
+  });
 
-  // Studio lights
-  const key = new THREE.DirectionalLight(0xffffff, 2.2);
-  key.position.set(30, 60, 40);
+  // Studio lights: warm soft key with shadows, cool rim, faint fill
+  const key = new THREE.DirectionalLight(0xfff4e8, 2.4);
+  key.position.set(34, 70, 46);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
-  Object.assign(key.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 200 });
-  key.shadow.bias = -0.0005;
+  Object.assign(key.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 20, far: 200 });
+  key.shadow.bias = -0.0002;
+  key.shadow.normalBias = 0.04;
+  key.shadow.radius = 4;
   scene.add(key);
   const rim = new THREE.DirectionalLight(0x8fb4ff, 1.2);
-  rim.position.set(-40, 20, -50);
+  rim.position.set(-40, 26, -55);
   scene.add(rim);
-  scene.add(new THREE.HemisphereLight(0x9aa6b8, 0x0a0c10, 0.25));
+  const kick = new THREE.DirectionalLight(0xffc68a, 0.6);
+  kick.position.set(60, 8, -20);
+  scene.add(kick);
+  scene.add(new THREE.HemisphereLight(0x9aa6b8, 0x0a0c10, 0.2));
 
-  // Floor with soft falloff
-  const floorTex = radialTexture();
-  const floor = mesh(
-    new THREE.CircleGeometry(140, 64),
-    new THREE.MeshStandardMaterial({ color: 0x151a22, roughness: 0.9, map: floorTex }),
-    { cast: false },
-  );
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -46;
+  // Floor: soft radial falloff plus a shadow catcher; main.js keeps it under the driven part.
+  const floor = new THREE.Group();
+  floor.position.y = FLOOR_Y.rotary;
   scene.add(floor);
+  const floorBase = new THREE.Mesh(
+    new THREE.CircleGeometry(150, 96),
+    new THREE.MeshStandardMaterial({ color: 0x151a22, roughness: 0.85, metalness: 0.0, map: radialTexture() }),
+  );
+  floorBase.rotation.x = -Math.PI / 2;
+  floorBase.receiveShadow = true;
+  floor.add(floorBase);
 
   const labels = [];
   const addLabel = (parent, text, pos, cls) => {
@@ -104,65 +130,28 @@ export function buildScene(renderer) {
     return l;
   };
 
-  // ---------- Motor ----------
+  // Group hierarchy. The meshes come from crossfixx-parts.glb (modelled in Blender) and are
+  // dropped into these groups by name once loaded; main.js animates the groups every frame.
   const motor = new THREE.Group();
   scene.add(motor);
-
-  // Frame (cutaway: back wall and top only, front left open) + preload spring
   const frame = new THREE.Group();
   motor.add(frame);
   const yTop = PLATE_CY + PLATE / 2 + 11;
-  const back = mesh(new THREE.BoxGeometry(28, yTop - 2, 1.2), mat.frame, { cast: false });
-  back.position.set(0, (yTop + 2) / 2, -4.2);
-  frame.add(back);
-  const top = mesh(new THREE.BoxGeometry(28, 2, 9), mat.frame, { cast: false });
-  top.position.set(0, yTop + 1, -0.2);
-  frame.add(top);
-  for (const sx of [-1, 1]) {
-    const post = mesh(new THREE.BoxGeometry(1.2, yTop - 2, 9), mat.frame, { cast: false });
-    post.position.set(sx * 13.4, (yTop + 2) / 2, -0.2);
-    post.scale.z = 1;
-    frame.add(post);
-  }
   const springBottom = PLATE_CY + PLATE / 2 + 2.2;
-  const spring = mesh(helixGeometry(2.6, 0.38, springBottom, yTop, 7), mat.steel);
-  frame.add(spring);
   addLabel(frame, 'Preload spring', new THREE.Vector3(9, (springBottom + yTop) / 2, 3), 'right');
-  addLabel(frame, 'Housing (cutaway)', new THREE.Vector3(-14, yTop + 3.5, 0), 'left');
+  addLabel(frame, 'Housing (cutaway)', new THREE.Vector3(-14, yTop + 4.5, 0), 'left');
 
   // Piezo plate on its centre clamp (nodal point of both modes)
   const plateGroup = new THREE.Group();
   plateGroup.position.y = PLATE_CY;
   motor.add(plateGroup);
-
-  // Yoke: clamp pin -> rides up to the spring
-  const yokeBar = mesh(new THREE.BoxGeometry(3, PLATE / 2 + 2.2, 1.4), mat.darkSteel);
-  yokeBar.position.set(0, (PLATE / 2 + 2.2) / 2, -2.2);
-  plateGroup.add(yokeBar);
-  const yokeCap = mesh(new THREE.BoxGeometry(7, 0.8, 7), mat.darkSteel);
-  yokeCap.position.set(0, PLATE / 2 + 2.2, -0.6);
-  plateGroup.add(yokeCap);
-  const pin = mesh(new THREE.CylinderGeometry(1.4, 1.4, PLATE_T + 4, 24), mat.steel);
-  pin.rotation.x = Math.PI / 2;
-  pin.position.z = -0.6;
-  plateGroup.add(pin);
-
   // Deforming part: matrix is set every frame from the two mode amplitudes
   const plateDeform = new THREE.Group();
   plateDeform.matrixAutoUpdate = false;
   plateGroup.add(plateDeform);
-  const plateShape = new THREE.Shape();
   const h = PLATE / 2;
-  plateShape.moveTo(-h, -h); plateShape.lineTo(h, -h); plateShape.lineTo(h, h); plateShape.lineTo(-h, h); plateShape.lineTo(-h, -h);
-  const hole = new THREE.Path();
-  hole.absarc(0, 0, 1.6, 0, Math.PI * 2, true);
-  plateShape.holes.push(hole);
-  const plateGeo = new THREE.ExtrudeGeometry(plateShape, { depth: PLATE_T, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.15, bevelSegments: 2, curveSegments: 32 });
-  plateGeo.translate(0, 0, -PLATE_T / 2);
-  const plate = mesh(plateGeo, mat.piezo);
-  plateDeform.add(plate);
 
-  // Four front electrodes; diagonal pairs form drive phases A and B
+  // Four front electrodes; diagonal pairs form drive phases A and B (meshes arrive with the GLB)
   const electrodes = [];
   const eSize = h - 1.4;
   const quads = [
@@ -170,16 +159,8 @@ export function buildScene(renderer) {
     { x: 1, y: 1, phase: 'B' }, { x: -1, y: -1, phase: 'B' },
   ];
   for (const q of quads) {
-    const m = new THREE.MeshPhysicalMaterial({
-      color: 0xc9ccd2, metalness: 1.0, roughness: 0.3, emissive: 0x000000, emissiveIntensity: 1,
-    });
-    const e = mesh(new THREE.BoxGeometry(eSize, eSize, 0.08), m, { cast: false });
-    e.position.set(q.x * (eSize / 2 + 0.9), q.y * (eSize / 2 + 0.9), PLATE_T / 2 + 0.2);
-    e.userData.phase = q.phase;
-    plateDeform.add(e);
-    electrodes.push(e);
     const tag = label(q.phase, 'phase-tag');
-    tag.position.set(e.position.x, e.position.y, e.position.z + 0.2);
+    tag.position.set(q.x * (eSize / 2 + 0.9), q.y * (eSize / 2 + 0.9), PLATE_T / 2 + 0.4);
     plateDeform.add(tag);
   }
   // Nodal-point view: probe dots ride on the deforming plate, their full-cycle paths are drawn
@@ -231,14 +212,7 @@ export function buildScene(renderer) {
   motor.add(tipBase);
   const tip = new THREE.Group();
   tipBase.add(tip);
-  const cap = mesh(new THREE.SphereGeometry(TIP_R, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat.ceramic);
-  cap.position.y = TIP_R;
-  tip.add(cap);
-  const shank = mesh(new THREE.CylinderGeometry(TIP_R, TIP_R, TIP_H + 0.4, 32), mat.ceramic);
-  shank.position.y = TIP_R + (TIP_H + 0.4) / 2;
-  tip.add(shank);
   addLabel(tipBase, 'Ceramic tip', new THREE.Vector3(-4.5, 2.4, 0), 'left');
-
   // Ghost ellipse: free tip path, exaggerated; recomputed each frame
   const ghostN = 160;
   const ghostPos = new Float32Array((ghostN + 1) * 3);
@@ -286,34 +260,13 @@ export function buildScene(renderer) {
   const linStrip = new THREE.Group();
   const linDriven = new THREE.Group();
   linear.add(linStrip, linDriven);
-  const ROD_LEN = 400;
   const rodSlide = new THREE.Group();        // moves along x
   linDriven.add(rodSlide);
   const stripSlide = new THREE.Group();
   linStrip.add(stripSlide);
-  const strip = mesh(new THREE.BoxGeometry(ROD_LEN, STRIP_T, 4.2), mat.strip);
-  strip.position.y = -STRIP_T / 2;
-  stripSlide.add(strip);
-  const rod = mesh(new THREE.CylinderGeometry(ROD_R, ROD_R, ROD_LEN, 40), mat.steel);
-  rod.rotation.z = Math.PI / 2;
-  rod.position.y = -STRIP_T - ROD_R + 0.9;
-  rodSlide.add(rod);
-  for (let x = -ROD_LEN / 2 + 5; x < ROD_LEN / 2; x += 10) {
-    const ring = mesh(new THREE.CylinderGeometry(ROD_R + 0.04, ROD_R + 0.04, 0.7, 40), mat.mark, { cast: false });
-    ring.rotation.z = Math.PI / 2;
-    ring.position.set(x, rod.position.y, 0);
-    rodSlide.add(ring);
-    const tick = mesh(new THREE.BoxGeometry(0.5, 0.05, 1.2), mat.mark, { cast: false });
-    tick.position.set(x, 0.01, 1.4);
-    stripSlide.add(tick);
-  }
-  for (const sx of [-1, 1]) {
-    const guide = mesh(new THREE.BoxGeometry(8, 4, 10), mat.darkSteel);
-    guide.position.set(sx * 24, rod.position.y - ROD_R - 1.6, 0);
-    linDriven.add(guide);
-  }
+  const rodY = -STRIP_T - ROD_R + 0.9;
   addLabel(linStrip, 'Ceramic strip', new THREE.Vector3(-18, 0.2, 2.5), 'left');
-  addLabel(linDriven, 'Rod (slides)', new THREE.Vector3(-36, rod.position.y - 2, 3), 'left');
+  addLabel(linDriven, 'Rod (slides)', new THREE.Vector3(-36, rodY - 2, 3), 'left');
 
   // Linear direction arrow
   const linArrow = straightArrow();
@@ -330,39 +283,8 @@ export function buildScene(renderer) {
   rotDriven.position.y = -ROTOR_R;
   const rotorSpin = new THREE.Group();      // rotates about z
   rotStrip.add(rotorSpin);
-  const band = mesh(new THREE.CylinderGeometry(ROTOR_R, ROTOR_R, 4.2, 96, 1, true), mat.strip);
-  band.rotation.x = Math.PI / 2;
-  rotorSpin.add(band);
-  const bandInner = mesh(new THREE.CylinderGeometry(ROTOR_R - STRIP_T, ROTOR_R - STRIP_T, 4.2, 96, 1, true),
-    mat.strip.clone());
-  bandInner.material.side = THREE.BackSide;
-  bandInner.rotation.x = Math.PI / 2;
-  rotorSpin.add(bandInner);
-  const bandFace = new THREE.RingGeometry(ROTOR_R - STRIP_T, ROTOR_R, 96);
-  for (const sz of [-1, 1]) {
-    const f = mesh(bandFace, mat.strip, { cast: false });
-    f.position.z = sz * 2.1;
-    if (sz < 0) f.rotation.y = Math.PI;
-    rotorSpin.add(f);
-  }
   const rotorBody = new THREE.Group();
   rotDriven.add(rotorBody);
-  const disc = mesh(new THREE.CylinderGeometry(ROTOR_R - STRIP_T, ROTOR_R - STRIP_T, 3.2, 96), mat.steel);
-  disc.rotation.x = Math.PI / 2;
-  rotorBody.add(disc);
-  const torus = mesh(new THREE.TorusGeometry(12, 1.3, 20, 96), mat.darkSteel);
-  torus.position.z = 1.6;
-  rotorBody.add(torus);
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
-    const m = mesh(new THREE.CylinderGeometry(1.6, 1.6, 3.4, 24), mat.mark, { cast: false });
-    m.rotation.x = Math.PI / 2;
-    m.position.set(Math.cos(a) * 6.5, Math.sin(a) * 6.5, 0);
-    rotorBody.add(m);
-  }
-  const axle = mesh(new THREE.CylinderGeometry(2.2, 2.2, 16, 32), mat.darkSteel);
-  axle.rotation.x = Math.PI / 2;
-  rotDriven.add(axle);
   addLabel(rotStrip, 'Ceramic strip (on rim)', new THREE.Vector3(ROTOR_R * 0.72 + 2, ROTOR_R * 0.72, 2), 'right');
   addLabel(rotDriven, 'Rotor (turns)', new THREE.Vector3(-ROTOR_R - 2, -6, 2), 'left');
 
@@ -370,8 +292,35 @@ export function buildScene(renderer) {
   rotArrow.position.z = 3;
   rotDriven.add(rotArrow);
 
+  // ---------- Load the Blender parts into the groups ----------
+  const targets = { frame, plateGroup, plateDeform, tip, stripSlide, rodSlide, linDriven, rotorSpin, rotorBody, rotDriven };
+  const ready = new GLTFLoader().loadAsync(partsUrl).then((gltf) => {
+    gltf.scene.updateMatrixWorld(true);
+    for (const [name, group] of Object.entries(targets)) {
+      const empty = gltf.scene.getObjectByName(`G_${name}`);
+      if (!empty) { console.warn(`crossfixx-parts.glb: no G_${name}`); continue; }
+      for (const child of [...empty.children]) group.add(child); // keeps the local transform
+    }
+    for (const group of Object.values(targets)) {
+      group.traverse((o) => {
+        if (!o.isMesh) return;
+        o.castShadow = true;
+        o.receiveShadow = true;
+        o.material = presetMaterial(o.material);
+        const m = /^electrode_([AB])_/.exec(o.name);
+        if (m) {
+          o.userData.phase = m[1];
+          o.castShadow = false;
+          electrodes.push(o);
+        }
+        if (o.material.name === 'mark') o.castShadow = false;
+      });
+    }
+  });
+  ready.catch((err) => console.error('Could not load the motor parts', err));
+
   return {
-    scene,
+    scene, ready, floor,
     groups: { frame, plateGroup, tipBase, linStrip, linDriven, rotStrip, rotDriven, linear, rotary },
     plateDeform, tip, electrodes, nodal, nodalProbes, probePaths, ghost, ghostN, ghostPos, ghostCol, ghostDot, scaleNote, labels,
     sparks, sparkState,
@@ -406,17 +355,6 @@ function arcArrow(r) {
   g.add(t, head);
   g.userData.material = m;
   return g;
-}
-
-// Coil spring as a tube along a helix (axis = y).
-function helixGeometry(radius, wire, y0, y1, turns) {
-  class Helix extends THREE.Curve {
-    getPoint(t, target = new THREE.Vector3()) {
-      const a = t * turns * Math.PI * 2;
-      return target.set(Math.cos(a) * radius, y0 + (y1 - y0) * t, Math.sin(a) * radius);
-    }
-  }
-  return new THREE.TubeGeometry(new Helix(), turns * 40, wire, 10, false);
 }
 
 function radialTexture() {
